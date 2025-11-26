@@ -9,6 +9,9 @@ import "./db/db.js";
 const app = new Hono();
 const PORT = process.env.PORT || 3000;
 app.use(logger());
+app.get("/", (c) => {
+  return c.text("hello from Hono");
+});
 app.route("/test", testRoutes);
 
 serve(
