@@ -1,6 +1,7 @@
 {
   "name": "learnHonojs",
   "type": "module",
+  "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
