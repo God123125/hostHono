@@ -5,7 +5,8 @@ export const Category = z.object({
   desc: z.string(),
   status: z.boolean(),
 });
-const categorySchema = new Schema(
+export type Category = z.infer<typeof Category>;
+const categorySchema = new Schema<Category>(
   {
     category: {
       type: String,
