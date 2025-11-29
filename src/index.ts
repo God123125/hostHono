@@ -5,10 +5,12 @@ import { Hono } from "hono";
 import testRoutes from "./routes/test.route.js";
 import { logger } from "hono/logger";
 import "./db/db.js";
+import { cors } from "hono/cors";
 
 const app = new Hono();
 const PORT = process.env.PORT || 3000;
-app.use(logger());
+app.use("*", logger());
+app.use("*", cors());
 app.get("/", (c) => {
   return c.text("hello from Hono");
 });
