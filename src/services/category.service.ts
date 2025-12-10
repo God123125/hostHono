@@ -8,14 +8,16 @@ const categoryController = {
       const body = await c.req.json();
       Category.parse(body);
       const category = new categoryModel(body);
-      category.save();
+      const savedData = await category.save();
       return c.json({
         msg: "Category created successfully!",
+        data: savedData,
       });
     } catch (e) {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
   get: async (c: Context) => {
@@ -34,6 +36,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
   getById: async (c: Context) => {
@@ -49,6 +52,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
   update: async (c: Context) => {
@@ -56,14 +60,16 @@ const categoryController = {
       const id = c.req.param("id");
       const body = await c.req.json();
       Category.parse(body);
-      await categoryModel.findByIdAndUpdate(id, body);
+      const updated = await categoryModel.findByIdAndUpdate(id, body);
       return c.json({
         msg: "Category update successfully!",
+        data: updated,
       });
     } catch (e) {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
   delete: async (c: Context) => {
@@ -77,6 +83,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
 };

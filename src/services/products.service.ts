@@ -55,6 +55,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
   getById: async (c: Context) => {
@@ -69,6 +70,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
   getImage: async (c: Context) => {
@@ -82,6 +84,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
   update: async (c: Context) => {
@@ -137,6 +140,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: "Server Error" }, 500);
     }
   },
 };
