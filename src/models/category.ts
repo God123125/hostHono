@@ -1,14 +1,14 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
 export const Category = z.object({
-  category: z.string(),
+  name: z.string(),
   desc: z.string(),
   status: z.boolean(),
 });
 export type Category = z.infer<typeof Category>;
 const categorySchema = new Schema<Category>(
   {
-    category: {
+    name: {
       type: String,
       required: true,
     },

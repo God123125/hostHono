@@ -3,7 +3,7 @@ import * as z from "zod";
 export const Product = z.object({
   name: z.string(),
   price: z.number(),
-  description: z.string(),
+  description: z.string().optional(),
   category: z.string(),
   qty: z.number(),
   image: z.object({
@@ -27,7 +27,6 @@ const productSchema = new Schema<Product>(
     },
     description: {
       type: String,
-      required: true,
     },
     category: {
       type: String,

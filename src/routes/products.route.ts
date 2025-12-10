@@ -1,0 +1,10 @@
+import { Hono } from "hono";
+import productController from "../services/products.service.js";
+const routes = new Hono();
+routes.get("/", productController.getMany);
+routes.post("/", productController.create);
+routes.get("/img/:id", productController.getImage);
+routes.get("/:id", productController.getById);
+routes.patch("/:id", productController.update);
+routes.delete("/:id", productController.delete);
+export default routes;
