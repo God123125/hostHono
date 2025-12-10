@@ -43,7 +43,7 @@ const categoryController = {
       if (category) {
         return c.json(category);
       } else {
-        return c.json("Product not found!");
+        return c.json("Category not found!");
       }
     } catch (e) {
       if (e instanceof z.ZodError) {
