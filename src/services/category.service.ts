@@ -36,5 +36,48 @@ const categoryController = {
       }
     }
   },
+  getById: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const category = await categoryModel.findById(id);
+      if (category) {
+        return c.json(category);
+      } else {
+        return c.json("Product not found!");
+      }
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return c.json(e, 400);
+      }
+    }
+  },
+  update: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const body = await c.req.json();
+      Category.parse(body);
+      await categoryModel.findByIdAndUpdate(id, body);
+      return c.json({
+        msg: "Category update successfully!",
+      });
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return c.json(e, 400);
+      }
+    }
+  },
+  delete: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      await categoryModel.findByIdAndDelete(id);
+      return c.json({
+        msg: "Category deleted successfully!",
+      });
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return c.json(e, 400);
+      }
+    }
+  },
 };
 export default categoryController;

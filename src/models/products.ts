@@ -6,7 +6,12 @@ export const Product = z.object({
   description: z.string(),
   category: z.string(),
   qty: z.number(),
-  image: z.string(),
+  image: z.object({
+    filename: z.string(),
+    mimetype: z.string(),
+    data: z.any(), // Buffer
+    length: z.number(),
+  }),
   status: z.boolean(),
 });
 export type Product = z.infer<typeof Product>;
@@ -34,8 +39,10 @@ const productSchema = new Schema<Product>(
       required: true,
     },
     image: {
-      type: String,
-      required: true,
+      filename: String,
+      mimetype: String,
+      data: Buffer,
+      length: Number,
     },
     status: {
       type: Boolean,
