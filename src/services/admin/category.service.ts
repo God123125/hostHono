@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import categoryModel from "../models/category.js";
-import { Category } from "../models/category.js";
+import categoryModel from "../../models/admin/category.js";
+import { Category } from "../../models/admin/category.js";
 import * as z from "zod";
 const categoryController = {
   create: async (c: Context) => {
@@ -17,7 +17,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
   get: async (c: Context) => {
@@ -36,7 +36,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
   getById: async (c: Context) => {
@@ -52,7 +52,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
   update: async (c: Context) => {
@@ -69,7 +69,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
   delete: async (c: Context) => {
@@ -83,7 +83,7 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
 };

@@ -12,7 +12,9 @@ export const Product = z.object({
     data: z.any(), // Buffer
     length: z.number(),
   }),
-  status: z.boolean(),
+  isActive: z.boolean(),
+  discount: z.number(),
+  totalPrice: z.number(),
 });
 export type Product = z.infer<typeof Product>;
 const productSchema = new Schema<Product>(
@@ -43,9 +45,16 @@ const productSchema = new Schema<Product>(
       data: Buffer,
       length: Number,
     },
-    status: {
+    isActive: {
       type: Boolean,
       required: true,
+    },
+    discount: {
+      type: Number,
+      required: false,
+    },
+    totalPrice: {
+      type: Number,
     },
   },
   { timestamps: true }

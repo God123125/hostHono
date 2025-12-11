@@ -1,0 +1,10 @@
+import { Hono } from "hono";
+import { mobileUserController } from "../../services/mobile/mobile-user.service.js";
+const routes = new Hono();
+routes.get("/", mobileUserController.getUsers);
+routes.post("/register", mobileUserController.register);
+routes.post("/login", mobileUserController.login);
+routes.get("/:id", mobileUserController.getById);
+routes.patch("/:id", mobileUserController.update);
+routes.delete("/:id", mobileUserController.delete);
+export default routes;

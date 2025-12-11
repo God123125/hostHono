@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { Product } from "../models/products.js";
-import productModel from "../models/products.js";
+import { Product } from "../../models/admin/products.js";
+import productModel from "../../models/admin/products.js";
 import * as z from "zod";
 const controller = {
   create: async (c: Context) => {
@@ -9,7 +9,9 @@ const controller = {
 
       const file = formData.get("image") as File;
       const buffer = await file.arrayBuffer();
-
+      const price = Number(formData.get("price"));
+      const discount = Number(formData.get("discount"));
+      const totalPrice = price - (price * discount) / 100;
       const productData = {
         name: formData.get("name") as string,
         price: Number(formData.get("price")),
@@ -22,7 +24,9 @@ const controller = {
           data: Buffer.from(buffer),
           length: file.size,
         },
-        status: formData.get("status") === "true",
+        isActive: formData.get("status") === "true",
+        discount: Number(formData.get("discount")),
+        totalPrice: totalPrice,
       };
 
       const validated = Product.parse(productData);
@@ -39,7 +43,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
   getMany: async (c: Context) => {
@@ -55,7 +59,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
   getById: async (c: Context) => {
@@ -77,28 +81,38 @@ const controller = {
     try {
       const id = c.req.param("id");
       const img = await productModel.findById(id).select("image");
-      return c.body(img!.image.data, 200, {
-        "Content-Type": img!.image.mimetype,
-      });
+      if (img) {
+        return c.body(img!.image.data, 200, {
+          "Content-Type": img!.image.mimetype,
+        });
+      } else {
+        return c.json({
+          msg: "Image not found",
+        });
+      }
     } catch (e) {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
   update: async (c: Context) => {
     try {
       const id = c.req.param("id");
       const formData = await c.req.formData(); // Returns FormData object
-
+      const price = Number(formData.get("price"));
+      const discount = Number(formData.get("discount"));
+      const totalPrice = price - (price * discount) / 100;
       const updateData: any = {
         name: formData.get("name") as string,
         price: Number(formData.get("price")),
         description: formData.get("description") as string,
         category: formData.get("category") as string,
         qty: Number(formData.get("qty")),
-        status: formData.get("status") === "true",
+        isActive: formData.get("status") === "true",
+        discount: Number(formData.get("discount")),
+        totalPrice: totalPrice,
       };
 
       // Only update image if a new one is provided
@@ -126,7 +140,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json(`Internal server error ${e}`, 500);
+      return c.json({ error: e }, 500);
     }
   },
   delete: async (c: Context) => {
@@ -140,7 +154,7 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: "Server Error" }, 500);
+      return c.json({ error: e }, 500);
     }
   },
 };

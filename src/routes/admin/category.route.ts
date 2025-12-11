@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import categoryController from "../services/category.service.js";
+import categoryController from "../../services/admin/category.service.js";
 const routes = new Hono();
 routes.get("/", categoryController.get);
 routes.post("/", categoryController.create);
