@@ -64,7 +64,7 @@ export const mobileUserController = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const user = await mobileUserModel.findById(id);
+      const user = await mobileUserModel.findById(id).select("-password");
       return c.json(user);
     } catch (e) {
       return c.json({ error: e }, 500);
