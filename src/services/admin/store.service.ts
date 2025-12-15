@@ -22,7 +22,15 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
-      const stores = await storeModel.find().populate("admin_users");
+      const user = c.req.query("userId");
+      if (!user) {
+        return c.json({ msg: "User ID is required" }, 400);
+      }
+      const stores = await storeModel
+        .find({
+          user: user,
+        })
+        .populate("admin_users");
       return c.json({
         list: stores,
       });

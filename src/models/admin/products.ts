@@ -15,6 +15,7 @@ export const Product = z.object({
   isActive: z.boolean(),
   discount: z.number(),
   totalPrice: z.number(),
+  store: z.string(),
 });
 export type Product = z.infer<typeof Product>;
 const productSchema = new Schema<Product>(
@@ -55,6 +56,11 @@ const productSchema = new Schema<Product>(
     },
     totalPrice: {
       type: Number,
+    },
+    store: {
+      type: String,
+      ref: "stores",
+      required: true,
     },
   },
   { timestamps: true }
