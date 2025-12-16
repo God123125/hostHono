@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 import * as z from "zod";
 export const Store = z.object({
   name: z.string(),

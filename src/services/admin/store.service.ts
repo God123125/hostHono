@@ -30,7 +30,7 @@ const controller = {
         .find({
           user: user,
         })
-        .populate("admin_users");
+        .populate("user");
       return c.json({
         list: stores,
       });
@@ -41,7 +41,7 @@ const controller = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const store = await storeModel.findById(id).populate("admin_users");
+      const store = await storeModel.findById(id).populate("user");
       return c.json(store);
     } catch (e) {
       return c.json({ error: e }, 500);

@@ -26,6 +26,7 @@ const controller = {
         },
         isActive: formData.get("status") === "true",
         discount: Number(formData.get("discount")),
+        store: formData.get("store") as string,
         totalPrice: totalPrice,
       };
 
