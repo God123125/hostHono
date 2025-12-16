@@ -8,16 +8,25 @@ export const adminUserController = {
   create: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
-      const req = await c.req.json();
-      const { username, email, password, role } = adminUser.parse(req);
-      const hashPass = await bcrpyt.hash(password, salt);
+      const formData = await c.req.formData();
+      const file = formData.get("profile") as File;
+      const buffer = await file.arrayBuffer();
+      const password = formData.get("password");
+      const hashPass = await bcrpyt.hash(password as string, salt);
       const body = {
-        username: username,
-        email: email,
+        username: formData.get("username") as string,
+        email: formData.get("email") as string,
         password: hashPass,
-        role: role,
+        profile: {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        },
+        role: formData.get("role") as string,
       };
-      const user = new adminUserModel(body);
+      const validated = adminUser.parse(body);
+      const user = new adminUserModel(validated);
       await user.save();
       return c.json({
         msg: "User created successfully!",
@@ -54,7 +63,7 @@ export const adminUserController = {
   },
   getUsers: async (c: Context) => {
     try {
-      const users = await adminUserModel.find();
+      const users = await adminUserModel.find().select("-profile.data");
       return c.json({
         list: users,
       });
@@ -65,8 +74,25 @@ export const adminUserController = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const user = await adminUserModel.findById().select("-password");
+      const user = await adminUserModel.findById(id).select("-password");
       return c.json(user);
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getUserProfile: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const profile = await adminUserModel.findById(id).select("profile");
+      if (profile) {
+        return c.body(profile!.profile.data, 200, {
+          "Content-Type": profile!.profile.mimetype,
+        });
+      } else {
+        return c.json({
+          msg: "Image not found",
+        });
+      }
     } catch (e) {
       return c.json({ error: e }, 500);
     }
@@ -75,16 +101,27 @@ export const adminUserController = {
     try {
       const id = c.req.param("id");
       const salt = await bcrpyt.genSalt();
-      const req = await c.req.json();
-      const { username, email, password, role } = adminUser.parse(req);
-      const hashPass = await bcrpyt.hash(password, salt);
-      const body = {
-        username: username,
-        email: email,
+      const formData = await c.req.formData();
+      const password = formData.get("password");
+      const hashPass = await bcrpyt.hash(password as string, salt);
+      const body: any = {
+        username: formData.get("username") as string,
+        email: formData.get("email") as string,
         password: hashPass,
-        role: role,
+        role: formData.get("role") as string,
       };
-      await adminUserModel.findByIdAndUpdate(id, body);
+      const file = formData.get("image") as File | null;
+      if (file && file.size > 0) {
+        const buffer = await file.arrayBuffer();
+        body.profile = {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        };
+      }
+      const validated = adminUser.parse(body);
+      await adminUserModel.findByIdAndUpdate(id, validated);
       return c.json({
         msg: "User udpated successfully!",
       });

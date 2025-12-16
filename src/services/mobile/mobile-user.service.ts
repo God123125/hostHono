@@ -8,15 +8,24 @@ export const mobileUserController = {
   register: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
-      const req = await c.req.json();
-      const { name, password, email } = mobileUser.parse(req);
-      const hashPass = await bcrpyt.hash(password, salt);
+      const formData = await c.req.formData();
+      const file = formData.get("profile") as File;
+      const buffer = await file.arrayBuffer();
+      const password = formData.get("password");
+      const hashPass = await bcrpyt.hash(password as string, salt);
       const body = {
-        name: name,
-        email: email,
+        name: formData.get("name") as string,
+        email: formData.get("email") as string,
+        profile: {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        },
         password: hashPass,
       };
-      const user = new mobileUserModel(body);
+      const validated = mobileUser.parse(body);
+      const user = new mobileUserModel(validated);
       await user.save();
       return c.json({
         msg: "User created successfully!",
@@ -70,19 +79,47 @@ export const mobileUserController = {
       return c.json({ error: e }, 500);
     }
   },
+  getUserProfile: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const profile = await mobileUserModel.findById(id).select("profile");
+      if (profile) {
+        return c.body(profile!.profile.data, 200, {
+          "Content-Type": profile!.profile.mimetype,
+        });
+      } else {
+        return c.json({
+          msg: "Image not found",
+        });
+      }
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
   update: async (c: Context) => {
     try {
       const id = c.req.param("id");
       const salt = await bcrpyt.genSalt();
-      const req = await c.req.json();
-      const { name, password, email } = mobileUser.parse(req);
-      const hashPass = await bcrpyt.hash(password, salt);
-      const body = {
-        name: name,
-        email: email,
+      const formData = await c.req.formData();
+      const password = formData.get("password");
+      const hashPass = await bcrpyt.hash(password as string, salt);
+      const body: any = {
+        name: formData.get("name") as string,
+        email: formData.get("email") as string,
         password: hashPass,
       };
-      await mobileUserModel.findByIdAndUpdate(id, body);
+      const file = formData.get("profile") as File;
+      if (file && file.size > 0) {
+        const buffer = await file.arrayBuffer();
+        body.profile = {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        };
+      }
+      const validated = mobileUser.parse(body);
+      await mobileUserModel.findByIdAndUpdate(id, validated);
       c.json({
         msg: "User updated successfully!",
       });

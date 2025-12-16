@@ -3,6 +3,7 @@ import { mobileUserController } from "../../services/mobile/mobile-user.service.
 const routes = new Hono();
 routes.get("/", mobileUserController.getUsers);
 routes.post("/register", mobileUserController.register);
+routes.get("/profile/:id", mobileUserController.getUserProfile);
 routes.post("/login", mobileUserController.login);
 routes.get("/:id", mobileUserController.getById);
 routes.patch("/:id", mobileUserController.update);
