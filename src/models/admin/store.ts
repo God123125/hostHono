@@ -7,6 +7,14 @@ export const Store = z.object({
   email: z.email(),
   phone: z.string(),
   user: z.string(),
+  store_type: z.string(),
+  isActive: z.boolean(),
+  store_img: z.object({
+    filename: z.string(),
+    mimetype: z.string(),
+    data: z.any(), // Buffer
+    length: z.number(),
+  }),
 });
 export type Store = z.infer<typeof Store>;
 const storeSchema = new Schema<Store>({
@@ -28,6 +36,19 @@ const storeSchema = new Schema<Store>({
   },
   phone: {
     type: String,
+  },
+  store_type: {
+    type: String,
+    required: true,
+  },
+  isActive: {
+    type: Boolean,
+  },
+  store_img: {
+    filename: String,
+    mimetype: String,
+    data: Buffer,
+    length: Number,
   },
   user: {
     type: String,

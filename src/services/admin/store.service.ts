@@ -5,9 +5,27 @@ import * as z from "zod";
 const controller = {
   create: async (c: Context) => {
     try {
-      const body = await c.req.json();
-      Store.parse(body);
-      const store = new storeModel(body);
+      const formData = await c.req.formData();
+      const file = formData.get("store_img") as File;
+      const buffer = await file.arrayBuffer();
+      const body: Store = {
+        name: formData.get("name") as string,
+        owner_name: formData.get("owner_name") as string,
+        gender: formData.get("gender") as string,
+        email: formData.get("email") as string,
+        phone: formData.get("phone") as string,
+        user: formData.get("user") as string,
+        store_type: formData.get("store_type") as string,
+        isActive: formData.get("isActive") == "true",
+        store_img: {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        },
+      };
+      const validated = Store.parse(body);
+      const store = new storeModel(validated);
       const savedData = await store.save();
       return c.json({
         msg: "Store created successfully!",
@@ -23,17 +41,16 @@ const controller = {
   getMany: async (c: Context) => {
     try {
       const user = c.req.query("userId");
-      if (!user) {
-        return c.json({ msg: "User ID is required" }, 400);
+      if (user) {
+        const stores = await storeModel
+          .find({
+            user: user,
+          })
+          .populate("user");
+        return c.json({
+          list: stores,
+        });
       }
-      const stores = await storeModel
-        .find({
-          user: user,
-        })
-        .populate("user");
-      return c.json({
-        list: stores,
-      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
