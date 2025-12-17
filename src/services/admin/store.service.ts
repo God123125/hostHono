@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import storeModel from "../../models/admin/store.js";
-import { Store } from "../../models/admin/store.js";
+import store, { Store } from "../../models/admin/store.js";
 import * as z from "zod";
 const controller = {
   create: async (c: Context) => {
@@ -40,17 +40,17 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
-      const user = c.req.query("userId");
-      if (user) {
-        const stores = await storeModel
-          .find({
-            user: user,
-          })
-          .populate("user");
-        return c.json({
-          list: stores,
-        });
-      }
+      const userId = c.req.query("userId");
+      const storeType = c.req.query("storeType");
+      const filter: any = {};
+      if (userId) filter.user = userId;
+      if (storeType) filter.store_type = storeType;
+      const stores = await storeModel.find(filter).populate("user");
+      const count = stores.length;
+      return c.json({
+        list: stores,
+        total: count,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
