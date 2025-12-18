@@ -45,7 +45,10 @@ const controller = {
       const filter: any = {};
       if (userId) filter.user = userId;
       if (storeType) filter.store_type = storeType;
-      const stores = await storeModel.find(filter).populate("user");
+      const stores = await storeModel
+        .find(filter)
+        .populate("user")
+        .select("-store_img.data");
       const count = stores.length;
       return c.json({
         list: stores,
