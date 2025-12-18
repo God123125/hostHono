@@ -67,9 +67,27 @@ const controller = {
   update: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const body = await c.req.json();
-      Store.parse(body);
-      await storeModel.findByIdAndUpdate(id, body);
+      const formData = await c.req.formData();
+      const file = formData.get("store_img") as File;
+      const buffer = await file.arrayBuffer();
+      const body: Store = {
+        name: formData.get("name") as string,
+        owner_name: formData.get("owner_name") as string,
+        gender: formData.get("gender") as string,
+        email: formData.get("email") as string,
+        phone: formData.get("phone") as string,
+        user: formData.get("user") as string,
+        store_type: formData.get("store_type") as string,
+        isActive: formData.get("isActive") == "true",
+        store_img: {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        },
+      };
+      const validated = Store.parse(body);
+      await storeModel.findByIdAndUpdate(id, validated);
       return c.json({
         msg: "Store updated successfully!",
       });
