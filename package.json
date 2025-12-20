@@ -19,10 +19,12 @@
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.0",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.11",
     "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
+    "@types/nodemailer": "^7.0.4",
     "cors": "^2.8.5",
     "tsx": "^4.7.1",
     "typescript": "^5.8.3"

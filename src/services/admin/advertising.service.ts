@@ -71,6 +71,45 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
-  update: async (c: Context) => {},
+  update: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const formData = await c.req.formData();
+      const file = formData.get("image") as File;
+      const buffer = await file.arrayBuffer();
+      const body: advertising = {
+        image: {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        },
+        des: formData.get("des") as string,
+        isActive: formData.get("isActive") == "true",
+      };
+      const validated = advertising.parse(body);
+      const updated = await advertisingModel.findByIdAndUpdate(id, validated);
+      return c.json({
+        msg: "Advertising updated successfully!",
+        data: updated,
+      });
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return c.json({ error: e }, 400);
+      }
+      return c.json({ error: e }, 500);
+    }
+  },
+  delete: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      await advertisingModel.findByIdAndDelete(id);
+      return c.json({
+        msg: "Advertising deleted successfully!",
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
 };
 export default controller;

@@ -10,6 +10,7 @@ export const mobileUser = z.object({
     length: z.number(),
   }),
   password: z.string().min(8).max(15),
+  phone: z.string().max(10).min(9),
 });
 export type mobileUser = z.infer<typeof mobileUser>;
 const mobileUserSchema = new Schema<mobileUser>(
@@ -29,6 +30,10 @@ const mobileUserSchema = new Schema<mobileUser>(
       length: Number,
     },
     password: {
+      type: String,
+      required: true,
+    },
+    phone: {
       type: String,
       required: true,
     },
