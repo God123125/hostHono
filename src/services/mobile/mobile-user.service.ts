@@ -218,7 +218,7 @@ export const mobileUserController = {
     try {
       const id = c.req.param("id");
       const salt = await bcrpyt.genSalt();
-      const { name, email, password, phone } = await c.req.json();
+      const { name, email, password, phone, address } = await c.req.json();
       const body: any = {};
       if (name) body.name = name;
       if (email) body.email = email;
@@ -227,6 +227,9 @@ export const mobileUserController = {
         body.password = hashPass;
       }
       if (phone) body.phone = phone;
+      if (address) {
+        body.address = address;
+      }
       // const validated = mobileUser.parse(body);
       const updated = await mobileUserModel
         .findByIdAndUpdate(id, body)

@@ -52,7 +52,8 @@ const controller = {
       const products = await productModel
         .find()
         .select("-image.data")
-        .populate("category");
+        .populate("category")
+        .lean(); // use to read data not copy plain object from mongodb
       const productWithImage = products.map((el) => ({
         ...el,
         image_url: `${c.req.url}/img/${el._id}`,
