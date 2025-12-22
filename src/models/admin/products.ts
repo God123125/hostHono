@@ -16,6 +16,7 @@ export const Product = z.object({
   discount: z.number(),
   totalPrice: z.number(),
   store: z.string(),
+  image_url: z.string().optional(),
 });
 export type Product = z.infer<typeof Product>;
 const productSchema = new Schema<Product>(
@@ -61,6 +62,9 @@ const productSchema = new Schema<Product>(
       type: String,
       ref: "stores",
       required: true,
+    },
+    image_url: {
+      type: String,
     },
   },
   { timestamps: true }

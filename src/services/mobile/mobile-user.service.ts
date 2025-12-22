@@ -59,7 +59,7 @@ export const mobileUserController = {
           expire,
           resendCount: 0,
         },
-        { upsert: true }
+        { upsert: true } // use this when can't find any so that it will create a new one
       );
 
       await transporter.sendMail({

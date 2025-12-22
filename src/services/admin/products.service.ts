@@ -53,8 +53,12 @@ const controller = {
         .find()
         .select("-image.data")
         .populate("category");
+      const productWithImage = products.map((el) => ({
+        ...el,
+        image_url: `${c.req.url}/img/${el._id}`,
+      }));
       return c.json({
-        list: products,
+        list: productWithImage,
       });
     } catch (e) {
       if (e instanceof z.ZodError) {
