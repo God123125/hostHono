@@ -5,7 +5,11 @@ export const cartController = {
   create: async (c: Context) => {
     try {
       const req = await c.req.json();
-      const validated = Cart.parse(req);
+      const body = {
+        ...req,
+        total: req.qty * req.price,
+      };
+      const validated = Cart.parse(body);
       const products = await cartModel.create(validated);
       return c.json({
         msg: "Product added to cart successfully!",
