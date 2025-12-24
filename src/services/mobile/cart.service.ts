@@ -24,7 +24,8 @@ export const cartController = {
   },
   getMany: async (c: Context) => {
     try {
-      const carts = await cartModel.find();
+      const userId = c.req.query("userId");
+      const carts = await cartModel.find({ user: userId });
       const length = carts.length;
       return c.json({
         list: carts,

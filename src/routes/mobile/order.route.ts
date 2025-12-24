@@ -1,0 +1,10 @@
+import { Hono } from "hono";
+import { orderController } from "../../services/mobile/order.service.js";
+const routes = new Hono();
+routes.get("/", orderController.getList);
+routes.get("/order-pending", orderController.getOrder);
+routes.post("/checkout", orderController.checkOut);
+routes.patch("/order/:id", orderController.order);
+routes.patch("/confirm-order/:id", orderController.confirmOrder);
+routes.delete("/:id", orderController.deleteOrder);
+export default routes;
