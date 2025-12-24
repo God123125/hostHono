@@ -39,6 +39,7 @@ const storeSchema = new Schema<Store>({
   },
   store_type: {
     type: String,
+    ref: "store_categories",
     required: true,
   },
   isActive: {

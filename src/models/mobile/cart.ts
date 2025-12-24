@@ -8,6 +8,7 @@ export const Cart = z.object({
   total: z.number(),
   user: z.string(),
   product: z.string(),
+  store: z.string(),
   imageUrl: z.string(),
 });
 export type Cart = z.infer<typeof Cart>;
@@ -38,6 +39,11 @@ const cartSchema = new Schema<Cart>(
     product: {
       type: String,
       ref: "products",
+      required: true,
+    },
+    store: {
+      type: String,
+      ref: "stores",
       required: true,
     },
     imageUrl: {

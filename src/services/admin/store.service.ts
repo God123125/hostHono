@@ -112,5 +112,24 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
+  search: async (c: Context) => {
+    try {
+      const search = decodeURIComponent(c.req.query("search") as string);
+      const store = await storeModel.find({
+        name: { $regex: search, $options: "i" },
+      });
+      if (store) {
+        return c.json({
+          data: store,
+        });
+      } else {
+        return c.json({
+          msg: "Store not found!",
+        });
+      }
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
 };
 export default controller;
