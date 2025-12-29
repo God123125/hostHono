@@ -8,6 +8,7 @@ export const cartController = {
       const body = {
         ...req,
         total: req.qty * req.price,
+        user: c.get("user"),
       };
       const validated = Cart.parse(body);
       const products = await cartModel.create(validated);
@@ -24,8 +25,8 @@ export const cartController = {
   },
   getMany: async (c: Context) => {
     try {
-      const userId = c.req.query("userId");
-      const carts = await cartModel.find({ user: userId });
+      // const userId = c.req.query("userId");
+      const carts = await cartModel.find({ user: c.get("user") });
       const length = carts.length;
       return c.json({
         list: carts,

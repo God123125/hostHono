@@ -6,6 +6,8 @@ import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { transporter } from "./mail-sender.service.js";
 import { tempUserModel } from "../../models/mobile/temp-user.js";
+import type { ObjectId } from "mongoose";
+import type mongoose from "mongoose";
 export const mobileUserController = {
   // register: async (c: Context) => {
   //   try {
@@ -129,7 +131,7 @@ export const mobileUserController = {
       if (!user) c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user!.password);
       if (!compare) c.json({ message: "Wrong Password" }, 401);
-      const token = getToken();
+      const token = getToken(user!._id);
       const expireAt = getExpirationDate(token);
       return c.json({
         user: userBody,
@@ -257,12 +259,12 @@ export const mobileUserController = {
     }
   },
 };
-function getToken() {
+function getToken(userId: mongoose.Types.ObjectId) {
   const secret = process.env.JWT_KEY;
   if (!secret) {
     throw new Error("JWT_KEY is not defined in environment variables.");
   }
-  return jwt.sign({}, secret, {
+  return jwt.sign({ user: userId }, secret, {
     expiresIn: "24h",
   });
 }

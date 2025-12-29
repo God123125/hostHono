@@ -1,6 +1,8 @@
 import type { Context } from "hono";
 import { orderModel } from "../../models/mobile/order.js";
 import { Order } from "../../models/mobile/order.js";
+import { cartModel } from "../../models/mobile/cart.js";
+import { orderStatus } from "../../enum/order-status.enum.js";
 import * as z from "zod";
 export const orderController = {
   checkOut: async (c: Context) => {
@@ -11,15 +13,16 @@ export const orderController = {
         0
       );
       const body = {
-        user: req.user,
+        user: c.get("user"),
         total: total,
         delivery_fee: req.delivery_fee,
         products: req.products,
-        status: "pending",
-        payment_method: "Cash On delivery",
+        status: orderStatus.pending,
+        payment_method: req.payment_method,
       };
       const validated = Order.parse(body);
       const created = await orderModel.create(validated);
+      await cartModel.deleteOne({ user: c.get("user") });
       return c.json({
         msg: "Checkouted",
         data: created,
@@ -51,13 +54,16 @@ export const orderController = {
   confirmOrder: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const status = "Completed";
+      const status = orderStatus.completed;
       const body = {
         status: status,
       };
-      const updated = await orderModel.findByIdAndUpdate(id, body);
+      console.log(status);
+      const updated = await orderModel.findByIdAndUpdate(id, body, {
+        new: true,
+      });
       return c.json({
-        msg: "Order started",
+        msg: "Order completed",
         data: updated,
       });
     } catch (e) {
@@ -77,24 +83,26 @@ export const orderController = {
   },
   getOrder: async (c: Context) => {
     try {
-      const userId = c.req.query("userId");
-      let status = "pending";
+      let status = orderStatus.pending;
       const order = await orderModel.find({
         status: status,
-        user: userId,
+        user: c.get("user"),
       });
-      return c.json(order);
+      return c.json({
+        list: order,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
   },
   getList: async (c: Context) => {
     try {
-      const userId = c.req.query("userId");
       const order = await orderModel.find({
-        user: userId,
+        user: c.get("user"),
       });
-      return c.json(order);
+      return c.json({
+        list: order,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }

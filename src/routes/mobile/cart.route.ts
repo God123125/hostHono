@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { cartController } from "../../services/mobile/cart.service.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
+routes.use("*", verifyToken);
 routes.get("/", cartController.getMany);
 routes.post("/", cartController.create);
 routes.get("/:id", cartController.getById);

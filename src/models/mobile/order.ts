@@ -15,60 +15,69 @@ export const Order = z.object({
       subtotal: z.number(),
       product: z.string(),
       imageUrl: z.string(),
+      store: z.string(),
     })
   ),
 });
 export type Order = z.infer<typeof Order>;
-const orderSchema = new Schema<Order>({
-  user: {
-    type: String,
-    ref: "mobile_users",
-    required: true,
-  },
-  products: [
-    {
-      name: {
-        type: String,
-        required: true,
-      },
-      qty: {
-        type: Number,
-        required: true,
-      },
-      size: String,
-      price: {
-        type: Number,
-        required: true,
-      },
-      subtotal: {
-        type: Number,
-        required: true,
-      },
-      imageUrl: {
-        type: String,
-        required: true,
-      },
-      product: {
-        type: String,
-        required: true,
-      },
+const orderSchema = new Schema<Order>(
+  {
+    user: {
+      type: String,
+      ref: "mobile_users",
     },
-  ],
-  delivery_fee: {
-    type: Number,
-    required: true,
+    products: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        qty: {
+          type: Number,
+          required: true,
+        },
+        size: String,
+        price: {
+          type: Number,
+          required: true,
+        },
+        subtotal: {
+          type: Number,
+          required: true,
+        },
+        imageUrl: {
+          type: String,
+          required: true,
+        },
+        product: {
+          type: String,
+          ref: "products",
+          required: true,
+        },
+        store: {
+          type: String,
+          ref: "stores",
+          required: true,
+        },
+      },
+    ],
+    delivery_fee: {
+      type: Number,
+      required: true,
+    },
+    total: {
+      type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
+      required: true,
+    },
+    payment_method: {
+      type: String,
+      required: true,
+    },
   },
-  total: {
-    type: Number,
-    required: true,
-  },
-  status: {
-    type: String,
-    required: true,
-  },
-  payment_method: {
-    type: String,
-    required: true,
-  },
-});
+  { timestamps: true }
+);
 export const orderModel = mongoose.model<Order>("orders", orderSchema);
