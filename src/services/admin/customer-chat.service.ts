@@ -37,9 +37,9 @@ export const chatController = {
           console.log(userId, "connected");
         },
 
-        async onMessage(ws: any, message: any) {
+        async onMessage(event: any, ws: any) {
           // const data = JSON.parse(message.toString());
-          console.log(ws.data);
+          ws.send("Echo: " + event.data);
           const data: any = {};
           // const saved = await chatModel.create({
           //   senderId: data.from,
