@@ -38,16 +38,17 @@ export const chatController = {
         },
 
         async onMessage(ws: any, message: any) {
-          const data = JSON.parse(message.toString());
+          // const data = JSON.parse(message.toString());
+          console.log(ws.data);
+          const data: any = {};
+          // const saved = await chatModel.create({
+          //   senderId: data.from,
+          //   receiverId: data.to,
+          //   message: data.message,
+          // });
 
-          const saved = await chatModel.create({
-            senderId: data.from,
-            receiverId: data.to,
-            message: data.message,
-          });
-
-          const receiver = clients.get(data.to);
-          if (receiver) receiver.send(JSON.stringify(saved));
+          // const receiver = clients.get(data.to);
+          // if (receiver) receiver.send(JSON.stringify(saved));
         },
 
         onClose() {

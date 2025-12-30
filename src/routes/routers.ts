@@ -16,5 +16,4 @@ HonoRoutes.route("/stores", storeRoute);
 HonoRoutes.route("/carts", cartRoute);
 HonoRoutes.route("/orders", orderRoute);
 HonoRoutes.route("/monthly-report", reportRoute);
-// HonoRoutes.route("/chats", chatRoute);
 export default HonoRoutes;

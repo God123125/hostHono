@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body></body>
+  <script>
+    const ws = new WebSocket("ws://localhost:3000/api/chat/ws?id=123213");
+
+    ws.onopen = () => {
+      console.log("Connected");
+      ws.send("Hello");
+    };
+
+    ws.onmessage = (event) => {
+      console.log("Received:", event.data);
+    };
+  </script>
+</html>
