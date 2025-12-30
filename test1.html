@@ -10,7 +10,7 @@
     <span class="store_message"></span>
   </body>
   <script>
-    const ws = new WebSocket("ws://localhost:3000/api/chat/ws?id=131313");
+    const ws = new WebSocket("ws://localhost:3000/api/chat/ws?id=121212");
     ws.onopen = () => console.log("Connected");
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -23,8 +23,8 @@
       const message = val ? val.value : "";
       ws.send(
         JSON.stringify({
-          from: "131313",
-          to: "121212",
+          from: "121212",
+          to: "131313",
           message,
         })
       );
