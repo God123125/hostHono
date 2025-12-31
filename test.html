@@ -3,24 +3,83 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Chat Box</title>
+    <link rel="stylesheet" href="test.css" />
   </head>
   <body>
-    <input type="text" id="msg" /> <button class="send">Send</button>
-    <span class="store_message"></span>
+    <div class="container">
+      <div class="header">Chat Center</div>
+      <div class="chat-area"></div>
+      <div class="input-area">
+        <input type="text" id="msg" placeholder="Type a message..." />
+        <button class="send">Send</button>
+      </div>
+    </div>
   </body>
   <script>
     const ws = new WebSocket("ws://localhost:3000/api/chat/ws?id=131313");
+    let store = [];
+
+    // Function to render messages
+    function renderMessages() {
+      const container = document.querySelector(".chat-area");
+      container.innerHTML = ""; // Clear existing messages
+
+      store.forEach((item) => {
+        const messageWrapper = document.createElement("div");
+        // isSender: true = received (left), isSender: false = sent by you (right)
+        messageWrapper.className = item.isSender
+          ? "message-wrapper receiver-wrapper"
+          : "message-wrapper sender-wrapper";
+
+        const messageDiv = document.createElement("div");
+        messageDiv.className = item.isSender
+          ? "message receiver"
+          : "message sender";
+        messageDiv.textContent = item.isSender ? item.data.message : item.data;
+
+        messageWrapper.appendChild(messageDiv);
+        container.appendChild(messageWrapper);
+      });
+
+      // Auto scroll to bottom
+      container.scrollTop = container.scrollHeight;
+
+      console.log("Current store:", store);
+    }
+
     ws.onopen = () => console.log("Connected");
+
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       console.log("Received:", data);
-      document.querySelector(".store_message").textContent = data.message;
+      store.push({
+        isSender: true, // Messages received from WebSocket
+        data: data,
+      });
+      renderMessages();
     };
 
-    document.querySelector(".send").addEventListener("click", () => {
+    document.querySelector(".send").addEventListener("click", sendMessage);
+
+    // Send message on Enter key
+    document.getElementById("msg").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+
+    function sendMessage() {
       const val = document.getElementById("msg");
-      const message = val ? val.value : "";
+      const message = val ? val.value.trim() : "";
+
+      if (!message) return; // Don't send empty messages
+
+      store.push({
+        isSender: false, // Messages sent by you
+        data: message,
+      });
+
       ws.send(
         JSON.stringify({
           from: "131313",
@@ -28,6 +87,9 @@
           message,
         })
       );
-    });
+
+      renderMessages();
+      val.value = "";
+    }
   </script>
 </html>
