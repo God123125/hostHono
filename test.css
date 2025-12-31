@@ -6,7 +6,7 @@
 
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #051149 0%, #580da3 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
 }
 
@@ -41,9 +41,9 @@ body {
   background-color: rgba(255, 255, 255, 0.1);
   padding: 15px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end; /* THIS MAKES MESSAGES START FROM BOTTOM */
+  flex-direction: column-reverse; /* THIS IS THE KEY FIX */
   gap: 10px;
 }
 
@@ -73,11 +73,11 @@ body {
 }
 
 .sender-wrapper {
-  justify-content: flex-end; /* Your messages on the right */
+  justify-content: flex-end;
 }
 
 .receiver-wrapper {
-  justify-content: flex-start; /* Received messages on the left */
+  justify-content: flex-start;
 }
 
 /* Message bubbles */

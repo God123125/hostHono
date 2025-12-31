@@ -25,7 +25,7 @@
       const container = document.querySelector(".chat-area");
       container.innerHTML = ""; // Clear existing messages
 
-      store.forEach((item) => {
+      [...store].reverse().forEach((item) => {
         const messageWrapper = document.createElement("div");
         // isSender: true = received (left), isSender: false = sent by you (right)
         messageWrapper.className = item.isSender
