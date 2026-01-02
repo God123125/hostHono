@@ -11,7 +11,7 @@ body {
 }
 
 .container {
-  width: 700px;
+  width: 500px;
   height: 700px;
   background: linear-gradient(rgb(11, 11, 46), rgb(90, 7, 69));
   position: absolute;
