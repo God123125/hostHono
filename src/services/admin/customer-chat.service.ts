@@ -17,9 +17,15 @@ export const chatController = {
   getMessage: async (c: Context) => {
     const { user } = c.req.param();
     const userExist = await mobileUserModel.findById(user);
+    let query = chatModel.find().sort({ createdAt: 1 });
+
+    // Only populate if user exists
     if (userExist) {
+      query = query.populate("senderId");
     }
-    const messages = await chatModel.find().sort({ createdAt: 1 }).lean(); //.lean() to get plan javascript object not mongodb document object
+
+    const messages = await query.lean();
+    // const messages = await chatModel.find().sort({ createdAt: 1 }).lean(); //.lean() to get plan javascript object not mongodb document object
     const fitleredData = messages.map((el) => ({
       ...el,
       isInbox: el.senderId !== user,
