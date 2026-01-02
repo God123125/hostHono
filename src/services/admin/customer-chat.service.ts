@@ -14,18 +14,16 @@ export const chatController = {
     return c.json(msg);
   },
   getMessage: async (c: Context) => {
-    const { user1, user2 } = c.req.param();
+    const { user } = c.req.param();
 
-    const messages = await chatModel
-      .find({
-        $or: [
-          { senderId: user1, receiverId: user2 },
-          { senderId: user2, receiverId: user1 },
-        ],
-      })
-      .sort({ createdAt: 1 });
-
-    return c.json(messages);
+    const messages = await chatModel.find().sort({ createdAt: 1 }).lean(); //.lean() to get plan javascript object not mongodb document object
+    const fitleredData = messages.map((el) => ({
+      ...el,
+      isInbox: el.senderId !== user,
+    }));
+    return c.json({
+      list: fitleredData,
+    });
   },
   upgradeSocket: (upgradeWebSocket: any) =>
     upgradeWebSocket((c: Context) => {

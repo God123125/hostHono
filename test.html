@@ -27,16 +27,16 @@
 
       [...store].reverse().forEach((item) => {
         const messageWrapper = document.createElement("div");
-        // isSender: true = received (left), isSender: false = sent by you (right)
-        messageWrapper.className = item.isSender
+        // isInbox: true = received (left), isInbox: false = sent by you (right)
+        messageWrapper.className = item.isInbox
           ? "message-wrapper receiver-wrapper"
           : "message-wrapper sender-wrapper";
 
         const messageDiv = document.createElement("div");
-        messageDiv.className = item.isSender
+        messageDiv.className = item.isInbox
           ? "message receiver"
           : "message sender";
-        messageDiv.textContent = item.isSender ? item.data.message : item.data;
+        messageDiv.textContent = item.message;
 
         messageWrapper.appendChild(messageDiv);
         container.appendChild(messageWrapper);
@@ -54,8 +54,9 @@
       const data = JSON.parse(event.data);
       console.log("Received:", data);
       store.push({
-        isSender: true, // Messages received from WebSocket
-        data: data,
+        isInbox: true, // Messages received from WebSocket
+        from: data.from,
+        message: data.message,
       });
       renderMessages();
     };
@@ -77,7 +78,7 @@
 
       store.push({
         isSender: false, // Messages sent by you
-        data: message,
+        message: message,
       });
 
       ws.send(
@@ -87,9 +88,45 @@
           message,
         })
       );
-
+      saveChatData(message);
       renderMessages();
       val.value = "";
     }
+    async function saveChatData(message) {
+      try {
+        const res = await fetch("http://localhost:3000/api/chat/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            senderId: "131313",
+            receiverId: "121212",
+            message: message,
+          }),
+        });
+
+        const data = await res.json();
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    async function getChatData() {
+      try {
+        const res = await fetch("http://localhost:3000/api/chat/chat/131313", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await res.json();
+        store.push(...data.list);
+        renderMessages();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    getChatData();
   </script>
 </html>
