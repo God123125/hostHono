@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { chatModel } from "../../models/admin/customer-chat.js";
+import { mobileUserModel } from "../../models/mobile/mobile-user.js";
 const clients = new Map<string, WebSocket>();
 export const chatController = {
   chat: async (c: Context) => {
@@ -15,7 +16,9 @@ export const chatController = {
   },
   getMessage: async (c: Context) => {
     const { user } = c.req.param();
-
+    const userExist = await mobileUserModel.findById(user);
+    if (userExist) {
+    }
     const messages = await chatModel.find().sort({ createdAt: 1 }).lean(); //.lean() to get plan javascript object not mongodb document object
     const fitleredData = messages.map((el) => ({
       ...el,

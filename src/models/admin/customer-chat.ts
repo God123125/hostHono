@@ -11,10 +11,12 @@ const chatSchema = new Schema<Chat>(
     senderId: {
       type: String,
       required: true,
+      ref: "mobile_users",
     },
     receiverId: {
       type: String,
       required: true,
+      ref: "mobile_users",
     },
     message: {
       type: String,

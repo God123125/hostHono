@@ -60,4 +60,7 @@ const mobileUserSchema = new Schema<mobileUser>(
   },
   { timestamps: true }
 );
-export default mongoose.model<mobileUser>("mobile_users", mobileUserSchema);
+export const mobileUserModel = mongoose.model<mobileUser>(
+  "mobile_users",
+  mobileUserSchema
+);

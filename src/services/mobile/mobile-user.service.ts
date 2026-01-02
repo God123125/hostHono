@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import mobileUserModel from "../../models/mobile/mobile-user.js";
+import { mobileUserModel } from "../../models/mobile/mobile-user.js";
 import { mobileUser } from "../../models/mobile/mobile-user.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
