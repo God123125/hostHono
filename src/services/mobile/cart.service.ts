@@ -55,8 +55,7 @@ export const cartController = {
     try {
       const id = c.req.param("id");
       const req = await c.req.json();
-      const validated = Cart.parse(req);
-      const updated = await cartModel.findByIdAndUpdate(id, validated);
+      const updated = await cartModel.findByIdAndUpdate(id, req);
       return c.json({
         msg: "Cart updated successfully!",
         data: updated,

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import productController from "../../services/admin/products.service.js";
 const routes = new Hono();
 routes.get("/", productController.getMany);
+routes.get("/search", productController.search);
 routes.post("/", productController.create);
 routes.get("/img/:id", productController.getImage);
 routes.get("/:id", productController.getById);

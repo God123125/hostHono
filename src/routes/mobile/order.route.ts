@@ -7,6 +7,6 @@ routes.get("/", orderController.getList); // get all order basically it is used 
 routes.get("/order-pending", orderController.getOrder); // view order that is on process
 routes.post("/checkout", orderController.checkOut); // check out when user decide to buy
 // routes.patch("/order/:id", orderController.order);
-routes.patch("/confirm-order/:id", orderController.confirmOrder); // when user confirm order update status
+routes.patch("/end-order/:id", orderController.endOrder); // when user confirm order update status
 routes.delete("/:id", orderController.deleteOrder);
 export default routes;

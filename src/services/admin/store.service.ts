@@ -114,11 +114,11 @@ const controller = {
   },
   search: async (c: Context) => {
     try {
-      const search = decodeURIComponent(c.req.query("search") as string);
+      const search = decodeURIComponent(c.req.query("q") as string);
       const store = await storeModel.find({
         name: { $regex: search, $options: "i" },
       });
-      if (store) {
+      if (store.length > 0) {
         return c.json({
           data: store,
         });

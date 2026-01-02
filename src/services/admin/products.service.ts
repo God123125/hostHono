@@ -163,5 +163,24 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
+  search: async (c: Context) => {
+    try {
+      const search = decodeURIComponent(c.req.query("q") as string);
+      const data = await productModel.find({
+        name: { $regex: search, $options: "i" },
+      });
+      if (data.length > 0) {
+        return c.json({
+          list: data,
+        });
+      } else {
+        return c.json({
+          msg: "No data found!",
+        });
+      }
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
 };
 export default controller;

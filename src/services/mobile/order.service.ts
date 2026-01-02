@@ -51,14 +51,20 @@ export const orderController = {
       return c.json({ error: e }, 500);
     }
   },
-  confirmOrder: async (c: Context) => {
+  // this one is used for confirm order or cancel it
+  endOrder: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const status = orderStatus.completed;
+      const { isConfirmOrder }: any = c.req.json();
+      let status = "";
+      if (isConfirmOrder) {
+        status = orderStatus.completed;
+      } else {
+        status = orderStatus.canceled;
+      }
       const body = {
         status: status,
       };
-      console.log(status);
       const updated = await orderModel.findByIdAndUpdate(id, body, {
         new: true,
       });
@@ -84,10 +90,12 @@ export const orderController = {
   getOrder: async (c: Context) => {
     try {
       let status = orderStatus.pending;
-      const order = await orderModel.find({
-        status: status,
-        user: c.get("user"),
-      });
+      const order = await orderModel
+        .find({
+          status: status,
+          user: c.get("user"),
+        })
+        .sort({ createdAt: 1 });
       return c.json({
         list: order,
       });
@@ -97,9 +105,11 @@ export const orderController = {
   },
   getList: async (c: Context) => {
     try {
-      const order = await orderModel.find({
-        user: c.get("user"),
-      });
+      const order = await orderModel
+        .find({
+          user: c.get("user"),
+        })
+        .sort({ createdAt: 1 });
       return c.json({
         list: order,
       });

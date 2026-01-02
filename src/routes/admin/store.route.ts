@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import storeController from "../../services/admin/store.service.js";
+import store from "../../models/admin/store.js";
 const routes = new Hono();
 routes.get("/", storeController.getMany);
+routes.get("/search", storeController.search);
 routes.post("/", storeController.create);
 routes.get("/:id", storeController.getById);
 routes.patch("/:id", storeController.update);
