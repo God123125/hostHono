@@ -15,91 +15,85 @@ export const chatController = {
     return c.json(msg);
   },
   getConversation: async (c: Context) => {
-    const { user } = c.req.param();
-    const currentUser = c.get("user");
-    const currentUserId = currentUser?._id || currentUser?.id || currentUser;
-
-    if (!user || !currentUserId) {
-      return c.json({ error: "Missing parameters or unauthenticated" }, 400);
-    }
-
-    // Determine who is who
-    // We assume the 'user' param is the OTHER party (the customer)
-
+    const { user1, user2 } = c.req.param();
+    // const currentUser = c.get("user");
     const messages = await chatModel
       .find({
         $or: [
-          { senderId: currentUserId, receiverId: user },
-          { senderId: user, receiverId: currentUserId }, // user here is the customerId
+          { senderId: user1, receiverId: user2 },
+          { senderId: user2, receiverId: user1 },
         ],
       })
       .sort({ createdAt: 1 })
-      .populate("senderId") // This will populate only if the ID exists in mobile_users collection
-      .populate("receiverId")
       .lean();
-
-    const formattedMessages = messages.map((msg: any) => {
-      // Check if senderId was populated. If it's a string, it wasn't populated (likely Admin).
-      // If it's an object, it was populated (Customer).
-      const isSenderAdmin = typeof msg.senderId === 'string' || msg.senderId._id?.toString() === currentUserId;
-
-      return {
-        ...msg,
-        // Explicitly tell frontend who sent/received
-        senderType: isSenderAdmin ? "admin" : "user",
-        isOwner: msg.senderId?._id?.toString() === currentUserId || msg.senderId === currentUserId,
-        // If population failed (admin), we might want to manually set a "name" or keep it as ID
-        // "populate it except admin" -> satisfied because mobile_users ref won't find admin.
-      };
-    });
+    const formattedChat = messages.map((el) => ({
+      ...el,
+      isInbox: el.senderId == user1,
+    }));
 
     return c.json({
-      list: formattedMessages,
+      list: formattedChat,
     });
   },
 
   getUserList: async (c: Context) => {
-    const currentUser = c.get("user");
-    const currentUserId = currentUser?._id || currentUser?.id || currentUser;
+    const { user } = c.req.param();
 
-    if (!currentUserId) {
-      return c.json({ error: "Unauthenticated" }, 401);
-    }
+    const messages = await chatModel
+      .find({
+        $or: [{ senderId: user }, { receiverId: user }],
+      })
+      .populate("senderId")
+      .populate("receiverId")
+      .sort({ timestamp: -1 })
+      .lean();
 
-    // Aggregate to find unique users interacting with this admin
-    const users = await chatModel.aggregate([
-      {
-        $match: {
-          $or: [{ senderId: currentUserId }, { receiverId: currentUserId }]
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          senders: { $addToSet: "$senderId" },
-          receivers: { $addToSet: "$receiverId" }
-        }
-      },
-      {
-        $project: {
-          // Merge both arrays to get all unique IDs encountered
-          allUsers: { $setUnion: ["$senders", "$receivers"] }
+    const userMap = new Map();
+
+    messages.forEach((msg: any) => {
+      // Use 'any' or create proper interface
+      // After populate, these are objects, not strings
+      const receiverId =
+        typeof msg.receiverId === "object"
+          ? msg.receiverId._id.toString()
+          : msg.receiverId.toString();
+
+      const senderId =
+        typeof msg.senderId === "object"
+          ? msg.senderId._id.toString()
+          : msg.senderId.toString();
+
+      // Determine who is the partner
+      const isReceiver = receiverId === user;
+      const partner = isReceiver ? msg.senderId : msg.receiverId;
+      const partnerId = isReceiver ? senderId : receiverId;
+
+      if (!userMap.has(partnerId)) {
+        userMap.set(partnerId, {
+          userId: partner._id,
+          username: partner.username,
+          email: partner.email,
+          profile: partner.profile,
+          lastMessage: msg.message,
+          lastMessageTime: msg.timestamp,
+          read: msg.read,
+          unreadCount: 0,
+        });
+      }
+
+      // Count unread messages
+      if (isReceiver && !msg.read) {
+        const existingData = userMap.get(partnerId);
+        if (existingData) {
+          existingData.unreadCount++;
         }
       }
-    ]);
-
-    if (!users.length || !users[0].allUsers) return c.json({ list: [] });
-
-    // Filter out the current user (admin) to get only the customers
-    const uniqueUserIds = users[0].allUsers.filter((id: string) => id.toString() !== currentUserId.toString());
-
-    // Fetch user details for these customers
-    const userDetails = await mobileUserModel.find({
-      _id: { $in: uniqueUserIds }
     });
 
+    const userList = Array.from(userMap.values());
+
     return c.json({
-      list: userDetails
+      list: userList,
     });
   },
   upgradeSocket: (upgradeWebSocket: any) =>

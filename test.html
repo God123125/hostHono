@@ -114,12 +114,15 @@
     }
     async function getChatData() {
       try {
-        const res = await fetch("http://localhost:3000/api/chat/chat/131313", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const res = await fetch(
+          "http://localhost:3000/api/chat/conversation/131313/121212",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
         const data = await res.json();
         store.push(...data.list);
         renderMessages();
