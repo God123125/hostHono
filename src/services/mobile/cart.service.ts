@@ -5,6 +5,16 @@ export const cartController = {
   create: async (c: Context) => {
     try {
       const req = await c.req.json();
+      const alreadyAddedCart = await cartModel.findOne({ name: req.name });
+      if (alreadyAddedCart) {
+        alreadyAddedCart.qty = alreadyAddedCart.qty + req.qty;
+        alreadyAddedCart.total = alreadyAddedCart.qty * req.price;
+        await alreadyAddedCart.save();
+        return c.json({
+          msg: "Cart quantity updated successfully!",
+          data: alreadyAddedCart,
+        });
+      }
       const body = {
         ...req,
         total: req.qty * req.price,

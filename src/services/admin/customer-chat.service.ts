@@ -39,6 +39,11 @@ export const chatController = {
   getUserList: async (c: Context) => {
     const { user } = c.req.param();
 
+    const mobile_users = await mobileUserModel.find().lean();
+    const mobileUserIds = new Set(
+      mobile_users.map((u: any) => u._id.toString())
+    );
+
     const messages = await chatModel
       .find({
         $or: [{ senderId: user }, { receiverId: user }],
@@ -51,22 +56,22 @@ export const chatController = {
     const userMap = new Map();
 
     messages.forEach((msg: any) => {
-      // Use 'any' or create proper interface
-      // After populate, these are objects, not strings
-      const receiverId =
-        typeof msg.receiverId === "object"
-          ? msg.receiverId._id.toString()
-          : msg.receiverId.toString();
+      // Skip if either sender or receiver is null (not populated)
+      if (!msg.senderId || !msg.receiverId) {
+        return;
+      }
 
-      const senderId =
-        typeof msg.senderId === "object"
-          ? msg.senderId._id.toString()
-          : msg.senderId.toString();
+      const receiverId = msg.receiverId._id.toString();
+      const senderId = msg.senderId._id.toString();
 
-      // Determine who is the partner
       const isReceiver = receiverId === user;
       const partner = isReceiver ? msg.senderId : msg.receiverId;
       const partnerId = isReceiver ? senderId : receiverId;
+
+      // Only include if partner is in mobile_users
+      if (!mobileUserIds.has(partnerId)) {
+        return;
+      }
 
       if (!userMap.has(partnerId)) {
         userMap.set(partnerId, {
@@ -81,7 +86,6 @@ export const chatController = {
         });
       }
 
-      // Count unread messages
       if (isReceiver && !msg.read) {
         const existingData = userMap.get(partnerId);
         if (existingData) {

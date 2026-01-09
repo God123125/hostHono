@@ -7,8 +7,6 @@ export default (upgradeWebSocket: any) => {
   const routes = new Hono();
 
   routes.get("/ws", chatController.upgradeSocket(upgradeWebSocket));
-
-  // Protect API routes
   routes.get("/users/:user", chatController.getUserList);
   routes.get("/conversation/:user1/:user2", chatController.getConversation);
   routes.post("/chat", chatController.chat);
