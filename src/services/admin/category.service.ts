@@ -59,7 +59,6 @@ const categoryController = {
     try {
       const id = c.req.param("id");
       const body = await c.req.json();
-      Category.parse(body);
       const updated = await categoryModel.findByIdAndUpdate(id, body);
       return c.json({
         msg: "Category update successfully!",
