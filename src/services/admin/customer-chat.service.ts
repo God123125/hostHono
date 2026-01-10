@@ -28,7 +28,7 @@ export const chatController = {
       .lean();
     const formattedChat = messages.map((el) => ({
       ...el,
-      isInbox: el.senderId == user1,
+      isInbox: el.senderId != user1,
     }));
 
     return c.json({
@@ -39,50 +39,83 @@ export const chatController = {
   getUserList: async (c: Context) => {
     const { user } = c.req.param();
 
+    // First, get all messages without populating
     const messages = await chatModel
       .find({
         $or: [{ senderId: user }, { receiverId: user }],
       })
-      .populate("senderId")
-      .populate("receiverId")
-      .sort({ timestamp: -1 })
+      .sort({ createdAt: -1 })
       .lean();
+
+    // Populate only the partner field (not the admin)
+    const populatedMessages = await Promise.all(
+      messages.map(async (msg: any) => {
+        const isAdminSender = msg.senderId.toString() === user;
+        const partnerField = isAdminSender ? "receiverId" : "senderId";
+
+        // Populate only the partner user
+        const populated = await chatModel.populate(msg, {
+          path: partnerField,
+          model: "mobile_users",
+          select: "-profile.data",
+        });
+
+        return populated;
+      })
+    );
 
     const userMap = new Map();
 
-    messages.forEach((msg: any) => {
-      // Use 'any' or create proper interface
-      // After populate, these are objects, not strings
-      const receiverId =
-        typeof msg.receiverId === "object"
-          ? msg.receiverId._id.toString()
-          : msg.receiverId.toString();
+    populatedMessages.forEach((msg: any) => {
+      // Determine which field is the partner and which is the admin
+      const isAdminSender =
+        msg.senderId.toString() === user ||
+        (typeof msg.senderId === "object" &&
+          msg.senderId?._id.toString() === user);
 
-      const senderId =
-        typeof msg.senderId === "object"
-          ? msg.senderId._id.toString()
-          : msg.senderId.toString();
+      const partnerField = isAdminSender ? "receiverId" : "senderId";
+      const partner = msg[partnerField];
 
-      // Determine who is the partner
-      const isReceiver = receiverId === user;
-      const partner = isReceiver ? msg.senderId : msg.receiverId;
-      const partnerId = isReceiver ? senderId : receiverId;
-
-      if (!userMap.has(partnerId)) {
-        userMap.set(partnerId, {
-          userId: partner._id,
-          username: partner.username,
-          email: partner.email,
-          profile: partner.profile,
-          lastMessage: msg.message,
-          lastMessageTime: msg.timestamp,
-          read: msg.read,
-          unreadCount: 0,
-        });
+      // Skip if partner is null (deleted user)
+      if (!partner) {
+        return;
       }
 
-      // Count unread messages
-      if (isReceiver && !msg.read) {
+      // Get partner ID
+      const partnerId =
+        typeof partner === "object"
+          ? partner._id.toString()
+          : partner.toString();
+
+      if (!userMap.has(partnerId)) {
+        // If partner is populated (object), extract details
+        if (typeof partner === "object") {
+          userMap.set(partnerId, {
+            userId: partner._id,
+            username: partner.username,
+            email: partner.email,
+            profile: partner.profile,
+            lastMessage: msg.message,
+            lastMessageTime: msg.createdAt,
+            read: msg.read,
+            unreadCount: 0,
+          });
+        }
+      } else {
+        // Update last message info if this message is more recent
+        const existingData = userMap.get(partnerId);
+        if (
+          existingData &&
+          new Date(msg.createdAt) > new Date(existingData.lastMessageTime)
+        ) {
+          existingData.lastMessage = msg.message;
+          existingData.lastMessageTime = msg.createdAt;
+          existingData.read = msg.read;
+        }
+      }
+
+      // Count unread messages (when admin is receiver)
+      if (!isAdminSender && !msg.read) {
         const existingData = userMap.get(partnerId);
         if (existingData) {
           existingData.unreadCount++;

@@ -17,7 +17,9 @@
     </div>
   </body>
   <script>
-    const ws = new WebSocket("ws://localhost:3000/api/chat/ws?id=131313");
+    const ws = new WebSocket(
+      "ws://localhost:3000/api/chat/ws?id=69467e98a5f6d82bfc3d18a2"
+    );
     let store = [];
 
     // Function to render messages
@@ -83,8 +85,8 @@
 
       ws.send(
         JSON.stringify({
-          from: "131313",
-          to: "121212",
+          from: "69467e98a5f6d82bfc3d18a2",
+          to: "695128c849db04c5064c9f0b",
           message,
         })
       );
@@ -100,8 +102,8 @@
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            senderId: "131313",
-            receiverId: "121212",
+            senderId: "69467e98a5f6d82bfc3d18a2",
+            receiverId: "695128c849db04c5064c9f0b",
             message: message,
           }),
         });
@@ -115,7 +117,7 @@
     async function getChatData() {
       try {
         const res = await fetch(
-          "http://localhost:3000/api/chat/conversation/131313/121212",
+          "http://localhost:3000/api/chat/conversation/69467e98a5f6d82bfc3d18a2/695128c849db04c5064c9f0b",
           {
             method: "GET",
             headers: {

@@ -48,7 +48,7 @@ export const mobileUserController = {
       const hashPass = await bcrpyt.hash(password, salt);
 
       const code = Math.floor(100000 + Math.random() * 900000);
-      const expire = Date.now() + 1000 * 60 * 5; // 5 mins
+      const expire = Date.now() + 1000 * 60 * 1; // 5 mins
 
       await tempUserModel.findOneAndUpdate(
         { email },
