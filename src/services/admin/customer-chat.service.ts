@@ -39,6 +39,11 @@ export const chatController = {
   getUserList: async (c: Context) => {
     const { user } = c.req.param();
 
+    const mobile_users = await mobileUserModel.find().lean();
+    const mobileUserIds = new Set(
+      mobile_users.map((u: any) => u._id.toString())
+    );
+
     // First, get all messages without populating
     const messages = await chatModel
       .find({

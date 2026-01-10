@@ -114,7 +114,7 @@ const controller = {
   },
   search: async (c: Context) => {
     try {
-      const search = decodeURIComponent(c.req.query("q") as string);
+      const search = decodeURIComponent(c.req.query("q") as string); // decodeURIComponent prer somrap search ahsor khmer
       const store = await storeModel.find({
         name: { $regex: search, $options: "i" },
       });
