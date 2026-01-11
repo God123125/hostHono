@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { mobileUserController } from "../../services/mobile/mobile-user.service.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
 routes.get("/", mobileUserController.getUsers);
 routes.get("/profile/:id", mobileUserController.getUserProfile);
@@ -7,8 +8,16 @@ routes.post("/register", mobileUserController.requestRegister);
 routes.post("/verify", mobileUserController.verifyRegister);
 routes.post("/resend-code", mobileUserController.resendCode);
 routes.post("/login", mobileUserController.login);
-routes.get("/:id", mobileUserController.getById);
-routes.patch("/update-account/:id", mobileUserController.updateAccount);
-routes.patch("/update-profile/:id", mobileUserController.updateProfile);
+routes.get("/personal-info", verifyToken, mobileUserController.getById);
+routes.patch(
+  "/update-account",
+  verifyToken,
+  mobileUserController.updateAccount
+);
+routes.patch(
+  "/update-profile",
+  verifyToken,
+  mobileUserController.updateProfile
+);
 routes.delete("/:id", mobileUserController.delete);
 export default routes;

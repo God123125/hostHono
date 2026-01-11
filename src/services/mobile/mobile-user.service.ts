@@ -155,7 +155,7 @@ export const mobileUserController = {
   },
   getById: async (c: Context) => {
     try {
-      const id = c.req.param("id");
+      const id = c.get("id");
       const user = await mobileUserModel.findById(id).select("-password");
       return c.json(user);
     } catch (e) {
@@ -181,7 +181,7 @@ export const mobileUserController = {
   },
   updateProfile: async (c: Context) => {
     try {
-      const id = c.req.param("id");
+      const id = c.get("user");
       const formData = await c.req.formData();
       const file = formData.get("profile") as File;
 
@@ -218,7 +218,7 @@ export const mobileUserController = {
 
   updateAccount: async (c: Context) => {
     try {
-      const id = c.req.param("id");
+      const id = c.get("user");
       const salt = await bcrpyt.genSalt();
       const { name, email, password, phone, address } = await c.req.json();
       const body: any = {};
