@@ -19,7 +19,9 @@ export const monthlyReport = {
         { $sort: { _id: -1 } },
       ]);
 
-      return c.json(report);
+      return c.json({
+        list: report,
+      });
     } catch (err) {
       console.error(err);
       return c.json({ message: "Server error" }, 500);
