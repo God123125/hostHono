@@ -3,12 +3,12 @@ import { mobileUserController } from "../../services/mobile/mobile-user.service.
 import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
 routes.get("/", mobileUserController.getUsers);
+routes.get("/personal-info", verifyToken, mobileUserController.getById);
 routes.get("/profile/:id", mobileUserController.getUserProfile);
 routes.post("/register", mobileUserController.requestRegister);
 routes.post("/verify", mobileUserController.verifyRegister);
 routes.post("/resend-code", mobileUserController.resendCode);
 routes.post("/login", mobileUserController.login);
-routes.get("/personal-info", verifyToken, mobileUserController.getById);
 routes.patch(
   "/update-account",
   verifyToken,
