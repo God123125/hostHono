@@ -35,7 +35,9 @@ const controller = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const feedback = await feedbackModel.findById(id);
+      const feedback = await feedbackModel
+        .findById(id)
+        .populate([{ path: "user" }, { path: "store" }]);
       return c.json(feedback);
     } catch (e) {
       return c.json({ error: e }, 500);
