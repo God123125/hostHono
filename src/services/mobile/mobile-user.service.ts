@@ -155,7 +155,7 @@ export const mobileUserController = {
   },
   getById: async (c: Context) => {
     try {
-      const id = c.get("id");
+      const id = c.get("user");
       const user = await mobileUserModel.findById(id).select("-password");
       return c.json(user);
     } catch (e) {
@@ -164,7 +164,7 @@ export const mobileUserController = {
   },
   getUserProfile: async (c: Context) => {
     try {
-      const id = c.req.param("id");
+      const id = c.req.param("user");
       const profile = await mobileUserModel.findById(id).select("profile");
       if (profile) {
         return c.body(profile!.profile.data, 200, {
