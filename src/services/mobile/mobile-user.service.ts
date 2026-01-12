@@ -166,7 +166,7 @@ export const mobileUserController = {
   },
   getUserProfile: async (c: Context) => {
     try {
-      const id = c.req.param("user");
+      const id = c.req.param("id");
       const profile = await mobileUserModel.findById(id).select("profile");
       if (profile) {
         return c.body(profile!.profile.data, 200, {
