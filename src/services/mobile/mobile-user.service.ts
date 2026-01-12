@@ -234,7 +234,7 @@ export const mobileUserController = {
       }
       // const validated = mobileUser.parse(body);
       const updated = await mobileUserModel
-        .findByIdAndUpdate(id, body)
+        .findByIdAndUpdate(id, body, { new: true })
         .select("-profile.data");
       return c.json({
         msg: "User updated successfully!",
