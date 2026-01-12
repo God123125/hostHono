@@ -121,7 +121,7 @@ export const adminUserController = {
         };
       }
       const validated = adminUser.parse(body);
-      await adminUserModel.findByIdAndUpdate(id, validated);
+      await adminUserModel.findByIdAndUpdate(id, validated, { new: true });
       return c.json({
         msg: "User udpated successfully!",
       });

@@ -135,7 +135,7 @@ const controller = {
 
       const validated = Product.parse(updateData);
       const updated = await productModel
-        .findByIdAndUpdate(id, validated)
+        .findByIdAndUpdate(id, validated, { new: true })
         .select("-image.data")
         .populate("category");
       return c.json({

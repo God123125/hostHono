@@ -156,7 +156,9 @@ export const mobileUserController = {
   getById: async (c: Context) => {
     try {
       const id = c.get("user");
-      const user = await mobileUserModel.findById(id).select("-password");
+      const user = await mobileUserModel
+        .findById(id)
+        .select(["-password", "-profile.data"]);
       return c.json(user);
     } catch (e) {
       return c.json({ error: e }, 500);

@@ -90,7 +90,7 @@ const controller = {
         },
       };
       const validated = Store.parse(body);
-      await storeModel.findByIdAndUpdate(id, validated);
+      await storeModel.findByIdAndUpdate(id, validated, { new: true });
       return c.json({
         msg: "Store updated successfully!",
       });
