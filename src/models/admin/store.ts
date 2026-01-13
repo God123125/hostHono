@@ -4,7 +4,6 @@ export const Store = z.object({
   name: z.string(),
   owner_name: z.string(),
   gender: z.string(),
-  email: z.email(),
   phone: z.string(),
   user: z.string(),
   store_type: z.string(),
@@ -27,10 +26,6 @@ const storeSchema = new Schema<Store>({
     required: true,
   },
   gender: {
-    type: String,
-    required: true,
-  },
-  email: {
     type: String,
     required: true,
   },

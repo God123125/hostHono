@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import storeModel from "../../models/admin/store.js";
-import store, { Store } from "../../models/admin/store.js";
+import { Store } from "../../models/admin/store.js";
 import * as z from "zod";
 const controller = {
   create: async (c: Context) => {
@@ -12,7 +12,6 @@ const controller = {
         name: formData.get("name") as string,
         owner_name: formData.get("owner_name") as string,
         gender: formData.get("gender") as string,
-        email: formData.get("email") as string,
         phone: formData.get("phone") as string,
         user: formData.get("user") as string,
         store_type: formData.get("store_type") as string,
@@ -26,10 +25,9 @@ const controller = {
       };
       const validated = Store.parse(body);
       const store = new storeModel(validated);
-      const savedData = await store.save();
+      await store.save();
       return c.json({
         msg: "Store created successfully!",
-        data: savedData,
       });
     } catch (e) {
       if (e instanceof z.ZodError) {
@@ -47,7 +45,10 @@ const controller = {
       if (storeType) filter.store_type = storeType;
       const stores = await storeModel
         .find(filter)
-        .populate("user")
+        .populate({
+          path: "user",
+          select: ["-profile.data", "-password"],
+        })
         .select("-store_img.data");
       const count = stores.length;
       return c.json({
@@ -67,30 +68,11 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
-  update: async (c: Context) => {
+  updateInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const formData = await c.req.formData();
-      const file = formData.get("store_img") as File;
-      const buffer = await file.arrayBuffer();
-      const body: Store = {
-        name: formData.get("name") as string,
-        owner_name: formData.get("owner_name") as string,
-        gender: formData.get("gender") as string,
-        email: formData.get("email") as string,
-        phone: formData.get("phone") as string,
-        user: formData.get("user") as string,
-        store_type: formData.get("store_type") as string,
-        isActive: formData.get("isActive") == "true",
-        store_img: {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        },
-      };
-      const validated = Store.parse(body);
-      await storeModel.findByIdAndUpdate(id, validated, { new: true });
+      const body = await c.req.json();
+      await storeModel.findByIdAndUpdate(id, body, { new: true });
       return c.json({
         msg: "Store updated successfully!",
       });
@@ -98,6 +80,49 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: e }, 500);
+    }
+  },
+  updateStoreImage: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const formData = await c.req.formData();
+      const file = formData.get("store_img") as File;
+      const body: any = {};
+      if (file && file.size > 0) {
+        const buffer = await file.arrayBuffer();
+        body.store_img = {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        };
+      }
+      if (!body.store_img) {
+        return c.json({ msg: "Please input file" }, 400);
+      }
+      await storeModel.findByIdAndUpdate(id, body);
+      return c.json({
+        msg: "Store image updated successfully!",
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getStoreImage: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const image = await storeModel.findById(id).select("store_img");
+      if (image) {
+        return c.body(image!.store_img.data, 200, {
+          "Content-Type": image!.store_img.mimetype,
+        });
+      } else {
+        return c.json({
+          msg: "Image not found",
+        });
+      }
+    } catch (e) {
       return c.json({ error: e }, 500);
     }
   },

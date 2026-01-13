@@ -5,7 +5,7 @@ import * as z from "zod";
 export const storeCategoryController = {
   create: async (c: Context) => {
     try {
-      const body = c.req.json();
+      const body = await c.req.json();
       const validated = storeCategory.parse(body);
       const created = await storeCategoryModel.create(validated);
       return c.json({
@@ -41,7 +41,7 @@ export const storeCategoryController = {
   update: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const body = c.req.json();
+      const body = await c.req.json();
       await storeCategoryModel.findByIdAndUpdate(id, body, { new: true });
       return c.json({
         msg: "Store category updated successfully!",

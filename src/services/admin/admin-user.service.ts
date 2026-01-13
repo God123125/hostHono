@@ -66,7 +66,7 @@ export const adminUserController = {
       const condition = { role: { $ne: "admin" } }; // condition not select admin
       const users = await adminUserModel
         .find(condition)
-        .select("-profile.data");
+        .select(["-profile.data", "-password"]);
       return c.json({
         list: users,
       });
@@ -77,7 +77,9 @@ export const adminUserController = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const user = await adminUserModel.findById(id).select("-password");
+      const user = await adminUserModel
+        .findById(id)
+        .select(["-password", "-image.data"]);
       return c.json(user);
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -100,20 +102,37 @@ export const adminUserController = {
       return c.json({ error: e }, 500);
     }
   },
-  update: async (c: Context) => {
+  updateAccountInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const salt = await bcrpyt.genSalt();
+      const { username, email, password, role, isActive } = await c.req.json();
+      const body: any = {};
+      if (username) body.username = username;
+      if (email) body.email = email;
+      if (password) {
+        const salt = await bcrpyt.genSalt(10);
+        body.password = await bcrpyt.hash(password, salt);
+      }
+      if (role) body.role = role;
+      if (isActive) body.isActive = isActive;
+      await adminUserModel.findByIdAndUpdate(id, body, { new: true }); // need to add only admin can update role for user
+      return c.json({
+        msg: "User udpated successfully!",
+      });
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return c.json({ error: e }, 400);
+      }
+      return c.json({ error: e }, 500);
+    }
+  },
+  updateProfile: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
       const formData = await c.req.formData();
-      const password = formData.get("password");
-      const hashPass = await bcrpyt.hash(password as string, salt);
-      const body: any = {
-        username: formData.get("username") as string,
-        email: formData.get("email") as string,
-        password: hashPass,
-        role: formData.get("role") as string,
-      };
-      const file = formData.get("image") as File | null;
+      const file = formData.get("profile") as File;
+      const body: any = {};
+
       if (file && file.size > 0) {
         const buffer = await file.arrayBuffer();
         body.profile = {
@@ -123,15 +142,19 @@ export const adminUserController = {
           length: file.size,
         };
       }
-      const validated = adminUser.parse(body);
-      await adminUserModel.findByIdAndUpdate(id, validated, { new: true });
+      if (!body.profile) {
+        return c.json({ msg: "Please input file" }, 400);
+      }
+
+      // Only validate profile part
+      const profileSchema = adminUser.pick({ profile: true });
+      const validated = profileSchema.parse(body);
+
+      await adminUserModel.findByIdAndUpdate(id, validated);
       return c.json({
-        msg: "User udpated successfully!",
+        msg: "User updated successfully!",
       });
     } catch (e) {
-      if (e instanceof z.ZodError) {
-        return c.json({ error: e }, 400);
-      }
       return c.json({ error: e }, 500);
     }
   },
