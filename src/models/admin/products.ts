@@ -5,7 +5,7 @@ export const Product = z.object({
   price: z.number(),
   description: z.string().optional(),
   category: z.string(),
-  qty: z.number(),
+  qty: z.number().optional(),
   image: z.object({
     filename: z.string(),
     mimetype: z.string(),
@@ -39,7 +39,6 @@ const productSchema = new Schema<Product>(
     },
     qty: {
       type: Number,
-      required: true,
     },
     image: {
       filename: String,

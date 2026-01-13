@@ -49,6 +49,7 @@ const controller = {
           path: "user",
           select: ["-profile.data", "-password"],
         })
+        .populate("store_type")
         .select("-store_img.data");
       const count = stores.length;
       return c.json({

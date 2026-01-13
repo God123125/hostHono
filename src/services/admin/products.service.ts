@@ -2,12 +2,14 @@ import type { Context } from "hono";
 import { Product } from "../../models/admin/products.js";
 import productModel from "../../models/admin/products.js";
 import * as z from "zod";
+import { error } from "console";
 const controller = {
   create: async (c: Context) => {
     try {
       const formData = await c.req.formData(); // Returns FormData object
 
       const file = formData.get("image") as File;
+      console.log(file);
       const buffer = await file.arrayBuffer();
       const price = Number(formData.get("price"));
       const discount = Number(formData.get("discount"));
@@ -24,7 +26,7 @@ const controller = {
           data: Buffer.from(buffer),
           length: file.size,
         },
-        isActive: formData.get("status") === "true",
+        isActive: formData.get("isActive") === "true",
         discount: Number(formData.get("discount")),
         store: formData.get("store") as string,
         totalPrice: totalPrice,
@@ -36,15 +38,15 @@ const controller = {
       return c.json(
         {
           msg: "Product created successfully!",
-          product: products,
         },
         201
       );
     } catch (e) {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
+      } else if (e instanceof Error) {
+        return c.json({ error: e.message }, 500);
       }
-      return c.json({ error: e }, 500);
     }
   },
   getMany: async (c: Context) => {
