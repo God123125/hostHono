@@ -63,7 +63,10 @@ export const adminUserController = {
   },
   getUsers: async (c: Context) => {
     try {
-      const users = await adminUserModel.find().select("-profile.data");
+      const condition = { role: { $ne: "admin" } }; // condition not select admin
+      const users = await adminUserModel
+        .find(condition)
+        .select("-profile.data");
       return c.json({
         list: users,
       });
