@@ -65,7 +65,7 @@ export const cartController = {
     try {
       const id = c.req.param("id");
       const req = await c.req.json();
-      const updated = await cartModel.findByIdAndUpdate(id, req);
+      const updated = await cartModel.findByIdAndUpdate(id, req, { new: true });
       return c.json({
         msg: "Cart updated successfully!",
         data: updated,

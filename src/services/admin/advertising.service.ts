@@ -88,7 +88,9 @@ const controller = {
         isActive: formData.get("isActive") == "true",
       };
       const validated = advertising.parse(body);
-      const updated = await advertisingModel.findByIdAndUpdate(id, validated);
+      const updated = await advertisingModel.findByIdAndUpdate(id, validated, {
+        new: true,
+      });
       return c.json({
         msg: "Advertising updated successfully!",
         data: updated,

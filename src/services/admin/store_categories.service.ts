@@ -42,7 +42,7 @@ export const storeCategoryController = {
     try {
       const id = c.req.param("id");
       const body = c.req.json();
-      await storeCategoryModel.findByIdAndUpdate(id, body);
+      await storeCategoryModel.findByIdAndUpdate(id, body, { new: true });
       return c.json({
         msg: "Store category updated successfully!",
       });

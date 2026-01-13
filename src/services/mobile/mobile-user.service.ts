@@ -155,8 +155,10 @@ export const mobileUserController = {
   },
   getById: async (c: Context) => {
     try {
-      const id = c.get("id");
-      const user = await mobileUserModel.findById(id).select("-password");
+      const id = c.get("user");
+      const user = await mobileUserModel
+        .findById(id)
+        .select(["-password", "-profile.data"]);
       return c.json(user);
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -234,7 +236,7 @@ export const mobileUserController = {
       }
       // const validated = mobileUser.parse(body);
       const updated = await mobileUserModel
-        .findByIdAndUpdate(id, body)
+        .findByIdAndUpdate(id, body, { new: true })
         .select("-profile.data");
       return c.json({
         msg: "User updated successfully!",
