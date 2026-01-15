@@ -79,7 +79,7 @@ export const adminUserController = {
       const id = c.req.param("id");
       const user = await adminUserModel
         .findById(id)
-        .select(["-password", "-image.data"]);
+        .select(["-password", "-profile.data"]);
       return c.json(user);
     } catch (e) {
       return c.json({ error: e }, 500);
