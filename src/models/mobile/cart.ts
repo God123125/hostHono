@@ -7,7 +7,6 @@ export const Cart = z.object({
   price: z.number(),
   total: z.number(),
   user: z.string().optional(),
-  product: z.string(),
   store: z.string(),
   imageUrl: z.string(),
 });
@@ -34,11 +33,6 @@ const cartSchema = new Schema<Cart>(
     user: {
       type: String,
       ref: "mobile_users",
-    },
-    product: {
-      type: String,
-      ref: "products",
-      required: true,
     },
     store: {
       type: String,

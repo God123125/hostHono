@@ -13,7 +13,6 @@ export const Order = z.object({
       size: z.string().optional(),
       price: z.number(),
       subtotal: z.number(),
-      product: z.string(),
       imageUrl: z.string(),
       store: z.string(),
     })
@@ -47,11 +46,6 @@ const orderSchema = new Schema<Order>(
         },
         imageUrl: {
           type: String,
-          required: true,
-        },
-        product: {
-          type: String,
-          ref: "products",
           required: true,
         },
         store: {
