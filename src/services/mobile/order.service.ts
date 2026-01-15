@@ -7,9 +7,10 @@ import * as z from "zod";
 export const orderController = {
   checkOut: async (c: Context) => {
     try {
-      const req: Order = await c.req.json();
+      const req = await c.req.json();
+      const cartId = req.cartId;
       const total = req.products.reduce(
-        (acc: number, ele) => acc + ele.subtotal,
+        (acc: number, ele: any) => acc + ele.subtotal,
         0
       );
       const body = {
@@ -22,7 +23,7 @@ export const orderController = {
       };
       const validated = Order.parse(body);
       const created = await orderModel.create(validated);
-      await cartModel.deleteOne({ user: c.get("user") });
+      await cartModel.findByIdAndDelete(cartId);
       return c.json({
         msg: "Checkouted",
         data: created,

@@ -36,7 +36,10 @@ export const cartController = {
   getMany: async (c: Context) => {
     try {
       // const userId = c.req.query("userId");
-      const carts = await cartModel.find({ user: c.get("user") });
+      const carts = await cartModel.find({ user: c.get("user") }).populate({
+        path: "store",
+        select: "name",
+      });
       const length = carts.length;
       return c.json({
         list: carts,
@@ -49,7 +52,7 @@ export const cartController = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const cart = await cartModel.findById(id);
+      const cart = await cartModel.findById(id).populate("store");
       if (cart) {
         return c.json(cart);
       } else {
