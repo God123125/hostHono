@@ -51,8 +51,10 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
+      const storeId = c.req.query("store");
+      const query = storeId ? { store: storeId } : {};
       const products = await productModel
-        .find()
+        .find(query)
         .select("-image.data")
         .populate("category")
         .lean(); // use to read data not copy plain object from mongodb
@@ -60,8 +62,10 @@ const controller = {
         ...el,
         image_url: `${c.req.url}/img/${el._id}`,
       }));
+      const total = productWithImage.length;
       return c.json({
         list: productWithImage,
+        total: total,
       });
     } catch (e) {
       if (e instanceof z.ZodError) {

@@ -5,7 +5,7 @@ routes.get("/", productController.getMany);
 routes.get("/search", productController.search);
 routes.post("/", productController.create);
 routes.get("/img/:id", productController.getImage);
-routes.get("/:id", productController.getById);
 routes.patch("/:id", productController.update);
 routes.delete("/:id", productController.delete);
+routes.get("/:id", productController.getById);
 export default routes;
