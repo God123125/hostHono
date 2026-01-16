@@ -17,6 +17,7 @@ const controller = {
         },
         des: formData.get("des") as string,
         isActive: formData.get("isActive") == "true",
+        store: formData.get("store") as string,
       };
       const validated = advertising.parse(body);
       const ads = new advertisingModel(validated);
@@ -33,7 +34,10 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
-      const ads = await advertisingModel.find().select("-image.data");
+      const ads = await advertisingModel.find().select("-image.data").populate({
+        path: "store",
+        select: "-store_img.data",
+      });
       return c.json({
         list: ads,
       });
@@ -61,7 +65,7 @@ const controller = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const ad = await advertisingModel.findById(id);
+      const ad = await advertisingModel.findById(id).select("-image.data");
       if (ad) {
         return c.json(ad);
       } else {
@@ -86,11 +90,13 @@ const controller = {
         },
         des: formData.get("des") as string,
         isActive: formData.get("isActive") == "true",
+        store: formData.get("store") as string,
       };
-      const validated = advertising.parse(body);
-      const updated = await advertisingModel.findByIdAndUpdate(id, validated, {
-        new: true,
-      });
+      const updated = await advertisingModel
+        .findByIdAndUpdate(id, body, {
+          new: true,
+        })
+        .select("-image.data");
       return c.json({
         msg: "Advertising updated successfully!",
         data: updated,

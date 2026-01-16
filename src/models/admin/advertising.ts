@@ -9,6 +9,7 @@ export const advertising = z.object({
   }),
   des: z.string(),
   isActive: z.boolean(),
+  store: z.string(),
 });
 export type advertising = z.infer<typeof advertising>;
 const advertisingSchema = new Schema<advertising>(
@@ -25,6 +26,11 @@ const advertisingSchema = new Schema<advertising>(
     },
     isActive: {
       type: Boolean,
+      required: true,
+    },
+    store: {
+      type: String,
+      ref: "stores",
       required: true,
     },
   },
