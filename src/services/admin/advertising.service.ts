@@ -20,10 +20,9 @@ const controller = {
         store: formData.get("store") as string,
       };
       const validated = advertising.parse(body);
-      const ads = new advertisingModel(validated);
+      await advertisingModel.create(validated);
       return c.json({
         msg: "Advertising created successfully!",
-        data: ads,
       });
     } catch (e) {
       if (e instanceof z.ZodError) {
@@ -34,12 +33,24 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
-      const ads = await advertisingModel.find().select("-image.data").populate({
-        path: "store",
-        select: "-store_img.data",
-      });
+      const ads = await advertisingModel
+        .find()
+        .select("-image.data")
+        .populate({
+          path: "store",
+          select: "name",
+        })
+        .lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}/api/stores`;
+      const baseUrlForAds = `${url.origin}${url.pathname}`;
+      const adsWithStoreImage = ads.map((el: any) => ({
+        ...el,
+        store_img: `${baseUrl}/store-image/${el.store._id}`,
+        ad_img: `${baseUrlForAds}/img/${el._id}`,
+      }));
       return c.json({
-        list: ads,
+        list: adsWithStoreImage,
       });
     } catch (e) {
       return c.json({ error: e }, 500);

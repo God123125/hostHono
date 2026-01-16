@@ -4,7 +4,7 @@ const routes = new Hono();
 routes.get("/", advertisingController.getMany);
 routes.post("/", advertisingController.create);
 routes.get("/img/:id", advertisingController.getImage);
-routes.get("/:id", advertisingController.getById);
 routes.patch("/:id", advertisingController.update);
 routes.delete("/:id", advertisingController.delete);
+routes.get("/:id", advertisingController.getById);
 export default routes;
