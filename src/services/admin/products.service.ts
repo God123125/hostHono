@@ -2,33 +2,23 @@ import type { Context } from "hono";
 import { Product } from "../../models/admin/products.js";
 import productModel from "../../models/admin/products.js";
 import * as z from "zod";
-import { error } from "console";
 const controller = {
   create: async (c: Context) => {
     try {
-      const formData = await c.req.formData(); // Returns FormData object
+      const body = await c.req.json(); // Returns FormData object
 
-      const file = formData.get("image") as File;
-      console.log(file);
-      const buffer = await file.arrayBuffer();
-      const price = Number(formData.get("price"));
-      const discount = Number(formData.get("discount"));
+      const price = Number(body.price);
+      const discount = Number(body.discount);
       const totalPrice = price - (price * discount) / 100;
       const productData = {
-        name: formData.get("name") as string,
-        price: Number(formData.get("price")),
-        description: formData.get("description") as string,
-        category: formData.get("category") as string,
-        qty: Number(formData.get("qty")),
-        image: {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        },
-        isActive: formData.get("isActive") === "true",
-        discount: Number(formData.get("discount")),
-        store: formData.get("store") as string,
+        name: body.name,
+        price: price,
+        description: body.description,
+        category: body.category,
+        qty: Number(body.qty),
+        isActive: body.isActive,
+        discount: Number(body.discount),
+        store: body.store,
         totalPrice: totalPrice,
       };
 
@@ -39,7 +29,7 @@ const controller = {
         {
           msg: "Product created successfully!",
         },
-        201
+        201,
       );
     } catch (e) {
       if (e instanceof z.ZodError) {
@@ -55,15 +45,14 @@ const controller = {
       const query = storeId ? { store: storeId } : {};
       const products = await productModel
         .find(query)
-        .select("-image.data")
         .populate("category")
         .lean(); // use to read data not copy plain object from mongodb
       const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}${url.pathname}`; //origin yor tah url derm ot yor query te
+      const baseUrl = `${url.origin}`; //origin yor tah url derm ot yor query te
 
       const productWithImage = products.map((el) => ({
         ...el,
-        image_url: `${baseUrl}/img/${el._id}`,
+        image_url: `${baseUrl}/api/product-document/${el._id}`,
       }));
       const total = productWithImage.length;
       return c.json({
@@ -80,10 +69,7 @@ const controller = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const product = await productModel
-        .findById(id)
-        .select("-image.data")
-        .populate("category");
+      const product = await productModel.findById(id).populate("category");
       return c.json(product);
     } catch (e) {
       if (e instanceof z.ZodError) {
@@ -92,60 +78,26 @@ const controller = {
       return c.json({ error: "Server Error" }, 500);
     }
   },
-  getImage: async (c: Context) => {
-    try {
-      const id = c.req.param("id");
-      const img = await productModel.findById(id).select("image");
-      if (img) {
-        return c.body(img!.image.data, 200, {
-          "Content-Type": img!.image.mimetype,
-        });
-      } else {
-        return c.json({
-          msg: "Image not found",
-        });
-      }
-    } catch (e) {
-      if (e instanceof z.ZodError) {
-        return c.json(e, 400);
-      }
-      return c.json({ error: e }, 500);
-    }
-  },
   update: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const formData = await c.req.formData(); // Returns FormData object
-      const price = Number(formData.get("price"));
-      const discount = Number(formData.get("discount"));
+      const body = await c.req.json();
+      const price = Number(body.price);
+      const discount = Number(body.discount);
       const totalPrice = price - (price * discount) / 100;
-      const updateData: any = {
-        name: formData.get("name") as string,
-        price: Number(formData.get("price")),
-        description: formData.get("description") as string,
-        category: formData.get("category") as string,
-        qty: Number(formData.get("qty")),
-        isActive: formData.get("status") === "true",
-        discount: Number(formData.get("discount")),
+      const productData = {
+        name: body.name,
+        price: price,
+        description: body.description,
+        category: body.category,
+        qty: Number(body.qty),
+        isActive: body.isActive,
+        discount: Number(body.discount),
+        store: body.store,
         totalPrice: totalPrice,
       };
-
-      // Only update image if a new one is provided
-      const file = formData.get("image") as File | null;
-      if (file && file.size > 0) {
-        const buffer = await file.arrayBuffer();
-        updateData.image = {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        };
-      }
-
-      const validated = Product.parse(updateData);
       const updated = await productModel
-        .findByIdAndUpdate(id, validated, { new: true })
-        .select("-image.data")
+        .findByIdAndUpdate(id, productData, { new: true })
         .populate("category");
       return c.json({
         msg: "Product updated successfully!",

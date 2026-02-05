@@ -6,12 +6,6 @@ export const Product = z.object({
   description: z.string().optional(),
   category: z.string(),
   qty: z.number().optional(),
-  image: z.object({
-    filename: z.string(),
-    mimetype: z.string(),
-    data: z.any(), // Buffer
-    length: z.number(),
-  }),
   isActive: z.boolean(),
   discount: z.number(),
   totalPrice: z.number(),
@@ -40,12 +34,6 @@ const productSchema = new Schema<Product>(
     qty: {
       type: Number,
     },
-    image: {
-      filename: String,
-      mimetype: String,
-      data: Buffer,
-      length: Number,
-    },
     isActive: {
       type: Boolean,
       required: true,
@@ -66,6 +54,6 @@ const productSchema = new Schema<Product>(
       type: String,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 export default mongoose.model("products", productSchema);
