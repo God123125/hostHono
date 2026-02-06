@@ -21,9 +21,15 @@ export const storeCategoryController = {
   },
   getMany: async (c: Context) => {
     try {
-      const categories = await storeCategoryModel.find();
+      const categories = await storeCategoryModel.find().lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedCategories = categories.map((el) => ({
+        ...el,
+        image_url: `${baseUrl}/api/storeCate-document/${el._id}`,
+      }));
       return c.json({
-        list: categories,
+        list: formattedCategories,
       });
     } catch (e) {
       return c.json({ error: e }, 500);
