@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import storeDocModel, { storeDoc } from "../../models/admin/stores-document.js";
 import * as z from "zod";
-const controller = {
+export const storeDocController = {
   create: async (c: Context) => {
     try {
       const formData = await c.req.formData();
@@ -99,4 +99,3 @@ const controller = {
     }
   },
 };
-export default controller;
