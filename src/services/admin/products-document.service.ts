@@ -1,6 +1,6 @@
-import { productDoc } from "../../models/admin/product-document.js";
+import { productDoc } from "../../models/admin/products-document.js";
 import * as z from "zod";
-import productDocModel from "../../models/admin/product-document.js";
+import productDocModel from "../../models/admin/products-document.js";
 import type { Context } from "hono";
 export const productDocController = {
   create: async (c: Context) => {
