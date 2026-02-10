@@ -61,7 +61,7 @@ export const mobileUserController = {
           expire,
           resendCount: 0,
         },
-        { upsert: true } // use this when can't find any so that it will create a new one
+        { upsert: true }, // use this when can't find any so that it will create a new one
       );
 
       await transporter.sendMail({
@@ -256,6 +256,36 @@ export const mobileUserController = {
       return c.json({
         msg: "User deleted successfully!",
       });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  updatePassword: async (c: Context) => {
+    try {
+      const { email, old_pass, new_pass } = await c.req.json();
+      const foundOne = await mobileUserModel.findOne({ email });
+      if (foundOne) {
+        const compare = await bcrpyt.compare(foundOne.password, old_pass);
+        if (compare) {
+          const salt = await bcrpyt.genSalt();
+          const hashPass = await bcrpyt.hash(new_pass, salt);
+          const body = {
+            password: hashPass,
+          };
+          await mobileUserModel.updateOne({ email }, body);
+          return c.json({ msg: "Password updated successfully!" });
+        } else {
+          return c.json({ msg: "Old password was not correct" }, 400);
+        }
+      } else {
+        return c.json({ msg: "User not found!" });
+      }
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  requestUpdateToEmail: async (c: Context) => {
+    try {
     } catch (e) {
       return c.json({ error: e }, 500);
     }
