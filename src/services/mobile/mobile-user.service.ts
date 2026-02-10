@@ -6,8 +6,8 @@ import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { transporter } from "./mail-sender.service.js";
 import { tempUserModel } from "../../models/mobile/temp-user.js";
-import type { ObjectId } from "mongoose";
 import type mongoose from "mongoose";
+import tempPassModel from "../../models/mobile/temp-password.js";
 export const mobileUserController = {
   // register: async (c: Context) => {
   //   try {
@@ -286,6 +286,22 @@ export const mobileUserController = {
   },
   requestUpdateToEmail: async (c: Context) => {
     try {
+      const { email } = await c.req.json();
+      const code = Math.floor(100000 + Math.random() * 900000);
+      await tempPassModel.findOne({ email }, { email, code });
+      await transporter.sendMail({
+        to: email,
+        subject: "Verification Code",
+        text: `Your verification code to reset password is ${code}`,
+      });
+      return c.json({ msg: "Code sent. Check your email." });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  verifyUpdatePassword: async (c: Context) => {
+    try {
+      const { code, email } = await c.req.json();
     } catch (e) {
       return c.json({ error: e }, 500);
     }
