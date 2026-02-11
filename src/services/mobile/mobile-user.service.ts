@@ -128,9 +128,9 @@ export const mobileUserController = {
         name: user?.name,
         email: user?.email,
       };
-      if (!user) c.json({ message: "Unauthenticated" }, 401);
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user!.password);
-      if (!compare) c.json({ message: "Wrong Password" }, 401);
+      if (!compare) return c.json({ message: "Wrong Password" }, 401);
       const token = getToken(user!._id);
       const expireAt = getExpirationDate(token);
       return c.json({
@@ -263,16 +263,14 @@ export const mobileUserController = {
   updatePassword: async (c: Context) => {
     try {
       const { email, old_pass, new_pass } = await c.req.json();
-      const foundOne = await mobileUserModel.findOne({ email });
-      if (foundOne) {
-        const compare = await bcrpyt.compare(foundOne.password, old_pass);
+      const user = await mobileUserModel.findOne({ email });
+      if (user) {
+        const compare = await bcrpyt.compare(old_pass, user.password);
         if (compare) {
           const salt = await bcrpyt.genSalt();
           const hashPass = await bcrpyt.hash(new_pass, salt);
-          const body = {
-            password: hashPass,
-          };
-          await mobileUserModel.updateOne({ email }, body);
+          user.password = hashPass;
+          await user.save();
           return c.json({ msg: "Password updated successfully!" });
         } else {
           return c.json({ msg: "Old password was not correct" }, 400);
@@ -288,7 +286,11 @@ export const mobileUserController = {
     try {
       const { email } = await c.req.json();
       const code = Math.floor(100000 + Math.random() * 900000);
-      await tempPassModel.findOne({ email }, { email, code });
+      await tempPassModel.findOneAndUpdate(
+        { email },
+        { email, code },
+        { upsert: true },
+      );
       await transporter.sendMail({
         to: email,
         subject: "Verification Code",
@@ -301,7 +303,20 @@ export const mobileUserController = {
   },
   verifyUpdatePassword: async (c: Context) => {
     try {
-      const { code, email } = await c.req.json();
+      const { code, email, newPass } = await c.req.json();
+      const tempUser = await tempPassModel.findOne({ email });
+      if (!tempUser) return c.json({ msg: "User not found!" });
+      if (tempUser.code != code) return c.json({ msg: "Code is invalid!" });
+      const user = await mobileUserModel.findOne({ email });
+      if (user) {
+        const salt = await bcrpyt.genSalt(10);
+        user.password = await bcrpyt.hash(newPass, salt);
+        await user.save();
+        await tempPassModel.deleteOne({ email });
+        return c.json({
+          msg: "Password updated successfully!",
+        });
+      }
     } catch (e) {
       return c.json({ error: e }, 500);
     }
