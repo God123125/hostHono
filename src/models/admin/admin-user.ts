@@ -11,7 +11,6 @@ export const adminUser = z.object({
     length: z.number(),
   }),
   role: z.string(),
-  isActive: z.boolean(),
 });
 export type adminUser = z.infer<typeof adminUser>;
 const adminUserSchema = new Schema<adminUser>(
@@ -38,11 +37,7 @@ const adminUserSchema = new Schema<adminUser>(
       type: String,
       required: true,
     },
-    isActive: {
-      type: Boolean,
-      required: true,
-    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 export default mongoose.model<adminUser>("admin_users", adminUserSchema);

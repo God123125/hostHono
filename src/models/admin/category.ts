@@ -3,7 +3,7 @@ import * as z from "zod";
 export const Category = z.object({
   name: z.string(),
   desc: z.string(),
-  status: z.boolean(),
+  isActive: z.boolean(),
 });
 export type Category = z.infer<typeof Category>;
 const categorySchema = new Schema<Category>(
@@ -15,10 +15,10 @@ const categorySchema = new Schema<Category>(
     desc: {
       type: String,
     },
-    status: {
+    isActive: {
       type: Boolean,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 export default mongoose.model("categories", categorySchema);

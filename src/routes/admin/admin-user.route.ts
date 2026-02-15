@@ -3,6 +3,7 @@ import { adminUserController } from "../../services/admin/admin-user.service.js"
 const routes = new Hono();
 routes.get("/", adminUserController.getUsers);
 routes.post("/", adminUserController.create);
+routes.post("/login", adminUserController.login);
 routes.get("/profile/:id", adminUserController.getUserProfile);
 routes.patch("update-info/:id", adminUserController.updateAccountInfo);
 routes.patch("update-profile/:id", adminUserController.updateProfile);

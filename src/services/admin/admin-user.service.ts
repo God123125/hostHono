@@ -4,6 +4,7 @@ import { adminUser } from "../../models/admin/admin-user.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
+import storeModel from "../../models/admin/stores.js";
 export const adminUserController = {
   create: async (c: Context) => {
     try {
@@ -42,9 +43,12 @@ export const adminUserController = {
     try {
       const { email, password } = await c.req.json();
       const user = await adminUserModel.findOne({ email });
+      const store = await storeModel.findOne({ user: user?._id?.toString() });
       const userBody = {
         username: user?.username,
         email: user?.email,
+        role: user?.role,
+        store: store,
       };
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user.password);
