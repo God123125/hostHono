@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { adminUserController } from "../../services/admin/admin-user.service.js";
 const routes = new Hono();
 routes.get("/", adminUserController.getUsers);
+routes.get("/search", adminUserController.search);
 routes.post("/", adminUserController.create);
 routes.post("/login", adminUserController.login);
 routes.get("/profile/:id", adminUserController.getUserProfile);

@@ -5,37 +5,60 @@ import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
 import storeModel from "../../models/admin/stores.js";
+import { readFile } from "fs/promises";
+import path from "path";
 export const adminUserController = {
   create: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
       const formData = await c.req.formData();
       const file = formData.get("profile") as File;
-      const buffer = await file.arrayBuffer();
       const password = formData.get("password");
       const hashPass = await bcrpyt.hash(password as string, salt);
-      const body = {
+      const body: any = {
         username: formData.get("username") as string,
         email: formData.get("email") as string,
         password: hashPass,
-        profile: {
+        role: formData.get("role") as string,
+        phone: formData.get("phone") as string,
+      };
+
+      // Handle profile: use uploaded file or default image
+      if (file && file.size > 0) {
+        // User uploaded a profile image
+        const buffer = await file.arrayBuffer();
+        body.profile = {
           filename: file.name,
           mimetype: file.type,
           data: Buffer.from(buffer),
           length: file.size,
-        },
-        role: formData.get("role") as string,
-      };
-      const validated = adminUser.parse(body);
-      const user = new adminUserModel(validated);
+        };
+      } else {
+        // No file uploaded, use default image from src/images folder
+        const defaultImagePath = path.join(
+          process.cwd(),
+          "src",
+          "images",
+          "default-profile.png",
+        );
+        try {
+          const defaultBuffer = await readFile(defaultImagePath);
+          body.profile = {
+            filename: "default-profile.png",
+            mimetype: "image/png",
+            data: defaultBuffer,
+            length: defaultBuffer.length,
+          };
+        } catch (error) {
+          console.log("Default image not found at:", defaultImagePath);
+        }
+      }
+      const user = new adminUserModel(body);
       await user.save();
       return c.json({
         msg: "User created successfully!",
       });
     } catch (e) {
-      if (e instanceof z.ZodError) {
-        return c.json({ error: e }, 400);
-      }
       return c.json({ error: e }, 500);
     }
   },
@@ -70,9 +93,18 @@ export const adminUserController = {
       const condition = { role: { $ne: "admin" } }; // condition not select admin
       const users = await adminUserModel
         .find(condition)
-        .select(["-profile.data", "-password"]);
+        .select(["-profile.data", "-password"])
+        .lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedUsers = users.map((el) => {
+        return {
+          ...el,
+          profile_url: `${baseUrl}/api/admin-users/profile/${el._id}`,
+        };
+      });
       return c.json({
-        list: users,
+        list: formattedUsers,
       });
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -81,10 +113,17 @@ export const adminUserController = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const user = await adminUserModel
+      const user: any = await adminUserModel
         .findById(id)
-        .select(["-password", "-profile.data"]);
-      return c.json(user);
+        .select(["-password", "-profile.data"])
+        .lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedUser = {
+        ...user,
+        profile_url: `${baseUrl}/api/admin-users/profile/${user._id}`,
+      };
+      return c.json(formattedUser);
     } catch (e) {
       return c.json({ error: e }, 500);
     }
@@ -93,9 +132,9 @@ export const adminUserController = {
     try {
       const id = c.req.param("id");
       const profile = await adminUserModel.findById(id).select("profile");
-      if (profile) {
-        return c.body(profile!.profile.data, 200, {
-          "Content-Type": profile!.profile.mimetype,
+      if (profile && profile.profile && profile.profile.data) {
+        return c.body(profile.profile.data, 200, {
+          "Content-Type": profile.profile.mimetype,
         });
       } else {
         return c.json({
@@ -109,7 +148,7 @@ export const adminUserController = {
   updateAccountInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const { username, email, password, role, isActive } = await c.req.json();
+      const { username, email, password, role } = await c.req.json();
       const body: any = {};
       if (username) body.username = username;
       if (email) body.email = email;
@@ -118,7 +157,6 @@ export const adminUserController = {
         body.password = await bcrpyt.hash(password, salt);
       }
       if (role) body.role = role;
-      if (isActive) body.isActive = isActive;
       await adminUserModel.findByIdAndUpdate(id, body, { new: true }); // need to add only admin can update role for user
       return c.json({
         msg: "User udpated successfully!",
@@ -169,6 +207,25 @@ export const adminUserController = {
       return c.json({
         msg: "User deleted successfully!",
       });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  search: async (c: Context) => {
+    try {
+      const search = decodeURIComponent(c.req.query("q") as string);
+      const data = await adminUserModel.find({
+        username: { $regex: search, $options: "i" },
+      });
+      if (data.length > 0) {
+        return c.json({
+          list: data,
+        });
+      } else {
+        return c.json({
+          msg: "No data found!",
+        });
+      }
     } catch (e) {
       return c.json({ error: e }, 500);
     }

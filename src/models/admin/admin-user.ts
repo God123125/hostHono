@@ -4,12 +4,15 @@ export const adminUser = z.object({
   username: z.string().optional(),
   email: z.string(),
   password: z.string(),
-  profile: z.object({
-    filename: z.string(),
-    mimetype: z.string(),
-    data: z.any(), // Buffer
-    length: z.number(),
-  }),
+  phone: z.string().optional(),
+  profile: z
+    .object({
+      filename: z.string(),
+      mimetype: z.string(),
+      data: z.any(), // Buffer
+      length: z.number(),
+    })
+    .optional(),
   role: z.string(),
 });
 export type adminUser = z.infer<typeof adminUser>;
@@ -26,6 +29,10 @@ const adminUserSchema = new Schema<adminUser>(
     password: {
       type: String,
       required: true,
+    },
+    phone: {
+      type: String,
+      required: false,
     },
     profile: {
       filename: String,
