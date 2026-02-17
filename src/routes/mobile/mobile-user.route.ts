@@ -3,8 +3,8 @@ import { mobileUserController } from "../../services/mobile/mobile-user.service.
 import { verifyToken } from "../../middleware/authMiddleware.js";
 import { mobileUser } from "../../models/mobile/mobile-user.js";
 const routes = new Hono();
-// routes.get("/", mobileUserController.getUsers);
-routes.get("/", verifyToken, mobileUserController.getById);
+routes.get("/", mobileUserController.getUsers);
+routes.get("/personal-info", verifyToken, mobileUserController.getById);
 routes.get("/profile/:id", mobileUserController.getUserProfile);
 routes.post("/register", mobileUserController.requestRegister);
 routes.post("/verify", mobileUserController.verifyRegister);

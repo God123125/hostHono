@@ -145,7 +145,9 @@ export const mobileUserController = {
   },
   getUsers: async (c: Context) => {
     try {
-      const users = await mobileUserModel.find();
+      const users = await mobileUserModel
+        .find()
+        .select(["-password", "-profile.data"]);
       return c.json({
         list: users,
       });
@@ -158,8 +160,14 @@ export const mobileUserController = {
       const id = c.get("user");
       const user = await mobileUserModel
         .findById(id)
-        .select(["-password", "-profile.data"]);
-      return c.json(user);
+        .select(["-password", "-profile.data"])
+        .lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      return c.json({
+        ...user,
+        profile: `${baseUrl}/api/mobile-users/profile/${user?._id}`,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
