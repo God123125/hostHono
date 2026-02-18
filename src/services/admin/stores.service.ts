@@ -2,12 +2,13 @@ import type { Context } from "hono";
 import storeModel from "../../models/admin/stores.js";
 import { Store } from "../../models/admin/stores.js";
 import * as z from "zod";
+import path from "path";
+import { readFile } from "fs/promises";
 const controller = {
   create: async (c: Context) => {
     try {
       const formData = await c.req.formData();
       const file = formData.get("store_img") as File;
-      const buffer = await file.arrayBuffer();
       const body: Store = {
         name: formData.get("name") as string,
         owner_name: formData.get("owner_name") as string,
@@ -16,13 +17,35 @@ const controller = {
         user: formData.get("user") as string,
         store_type: formData.get("store_type") as string,
         isActive: formData.get("isActive") == "true",
-        store_img: {
+      };
+      if (file && file.size > 0) {
+        // User uploaded a profile image
+        const buffer = await file.arrayBuffer();
+        body.store_img = {
           filename: file.name,
           mimetype: file.type,
           data: Buffer.from(buffer),
           length: file.size,
-        },
-      };
+        };
+      } else {
+        const defaultImagePath = path.join(
+          process.cwd(),
+          "src",
+          "images",
+          "default_store_category.jpg",
+        );
+        try {
+          const defaultBuffer = await readFile(defaultImagePath);
+          body.store_img = {
+            filename: "default_store_category.jpg",
+            mimetype: "image/jpg",
+            data: defaultBuffer,
+            length: defaultBuffer.length,
+          };
+        } catch (error) {
+          console.log("Default image not found at:", defaultImagePath);
+        }
+      }
       const validated = Store.parse(body);
       const store = new storeModel(validated);
       await store.save();
@@ -50,10 +73,19 @@ const controller = {
           select: ["-profile.data", "-password"],
         })
         .populate("store_type")
-        .select("-store_img.data");
+        .select("-store_img.data")
+        .lean();
       const count = stores.length;
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedData = stores.map((el) => {
+        return {
+          ...el,
+          image_url: `${baseUrl}/api/stores/store-image/${el._id}`,
+        };
+      });
       return c.json({
-        list: stores,
+        list: formattedData,
         total: count,
       });
     } catch (e) {
@@ -63,8 +95,18 @@ const controller = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const store = await storeModel.findById(id).populate("user");
-      return c.json(store);
+      const store = await storeModel
+        .findById(id)
+        .select("-image.data")
+        .populate("user")
+        .lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedData = {
+        ...store,
+        image_url: `${baseUrl}/api/store/store-image/${store?._id}`,
+      };
+      return c.json(formattedData);
     } catch (e) {
       return c.json({ error: e }, 500);
     }
@@ -114,7 +156,7 @@ const controller = {
     try {
       const id = c.req.param("id");
       const image = await storeModel.findById(id).select("store_img");
-      if (image) {
+      if (image && image.store_img && image.store_img.data) {
         return c.body(image!.store_img.data, 200, {
           "Content-Type": image!.store_img.mimetype,
         });

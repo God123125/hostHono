@@ -8,12 +8,14 @@ export const Store = z.object({
   user: z.string(),
   store_type: z.string(),
   isActive: z.boolean(),
-  store_img: z.object({
-    filename: z.string(),
-    mimetype: z.string(),
-    data: z.any(), // Buffer
-    length: z.number(),
-  }),
+  store_img: z
+    .object({
+      filename: z.string(),
+      mimetype: z.string(),
+      data: z.any(), // Buffer
+      length: z.number(),
+    })
+    .optional(),
 });
 export type Store = z.infer<typeof Store>;
 const storeSchema = new Schema<Store>({
