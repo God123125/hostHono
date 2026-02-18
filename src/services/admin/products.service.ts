@@ -54,7 +54,7 @@ const controller = {
       if (category) query.category = category;
       const products = await productModel
         .find(query)
-        .select("-image")
+        .select("-image.data")
         .populate("category")
         .limit(Number(limit))
         .lean(); // use to read data not copy plain object from mongodb
@@ -97,8 +97,17 @@ const controller = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const product = await productModel.findById(id).populate("category");
-      return c.json(product);
+      const product = await productModel
+        .findById(id)
+        .select("-image.data")
+        .populate("category");
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedData = {
+        ...product,
+        image_url: `${baseUrl}/api/products/img/${product?._id}`,
+      };
+      return c.json(formattedData);
     } catch (e) {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
@@ -106,7 +115,7 @@ const controller = {
       return c.json({ error: "Server Error" }, 500);
     }
   },
-  update: async (c: Context) => {
+  updateInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
       const body = await c.req.json();
@@ -135,6 +144,30 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
+      return c.json({ error: e }, 500);
+    }
+  },
+  updateImage: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const formData = await c.req.formData();
+      const file = formData.get("image") as File;
+      const body: any = {};
+      if (file && file.size > 0) {
+        const buffer = await file.arrayBuffer();
+        body.image = {
+          filename: file.name,
+          mimetype: file.type,
+          data: Buffer.from(buffer),
+          length: file.size,
+        };
+      }
+      if (!body.image) {
+        return c.json({ msg: "Please input file" }, 400);
+      }
+      await productModel.findByIdAndUpdate(id, body);
+      return c.json({ msg: "Product Image updated successfully!" });
+    } catch (e) {
       return c.json({ error: e }, 500);
     }
   },
