@@ -1,17 +1,23 @@
 import type { Context } from "hono";
 import * as z from "zod";
 import { orderModel } from "../../models/mobile/order.js";
+import mongoose from "mongoose";
 export const dashboardController = {
   getMostOrderUser: async (c: Context) => {
     try {
       const data = await orderModel.aggregate([
+        {
+          $addFields: {
+            userObjectId: { $toObjectId: "$user" }, // convert string → ObjectId
+          },
+        },
         {
           $unwind: "$products",
         },
         {
           $lookup: {
             from: "mobile_users",
-            localField: "user",
+            localField: "userObjectId",
             foreignField: "_id",
             as: "userData",
           },
@@ -48,12 +54,29 @@ export const dashboardController = {
     try {
       const data = await orderModel.aggregate([
         {
+          $match: {
+            _id: new mongoose.Types.ObjectId("6998537fe637c20be3fe8bd0"), // test with just this order
+          },
+        },
+        {
           $unwind: "$products",
+        },
+        {
+          $addFields: {
+            storeObjectId: {
+              $convert: {
+                input: "$products.store",
+                to: "objectId",
+                onError: null,
+                onNull: null,
+              },
+            },
+          },
         },
         {
           $lookup: {
             from: "stores",
-            localField: "products.store",
+            localField: "storeObjectId",
             foreignField: "_id",
             as: "incomeData",
           },
@@ -61,7 +84,7 @@ export const dashboardController = {
         {
           $unwind: {
             path: "$incomeData",
-            preserveNullAndEmptyArrays: false,
+            preserveNullAndEmptyArrays: true, // ← change to true temporarily
           },
         },
         {
@@ -71,12 +94,6 @@ export const dashboardController = {
             totalOrder: { $sum: 1 },
             total_cost: { $sum: "$products.subtotal" },
           },
-        },
-        {
-          $sort: { totalOrder: -1 }, // -1 = descending (most orders first)
-        },
-        {
-          $limit: 10,
         },
       ]);
       return c.json({

@@ -11,7 +11,7 @@ export const orderController = {
       const cartId = req.cartId;
       const total = req.products.reduce(
         (acc: number, ele: any) => acc + ele.subtotal,
-        0
+        0,
       );
       const body = {
         user: c.get("user"),
@@ -56,8 +56,9 @@ export const orderController = {
   endOrder: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const { isConfirmOrder }: any = c.req.json();
+      const { isConfirmOrder } = await c.req.json();
       let status = "";
+      console.log(isConfirmOrder);
       if (isConfirmOrder) {
         status = orderStatus.completed;
       } else {
