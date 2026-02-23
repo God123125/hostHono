@@ -148,7 +148,7 @@ export const adminUserController = {
   updateAccountInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const { username, email, password, role } = await c.req.json();
+      const { username, email, password, role, phone } = await c.req.json();
       const body: any = {};
       if (username) body.username = username;
       if (email) body.email = email;
@@ -156,6 +156,7 @@ export const adminUserController = {
         const salt = await bcrpyt.genSalt(10);
         body.password = await bcrpyt.hash(password, salt);
       }
+      if (phone) body.phone = phone;
       if (role) body.role = role;
       await adminUserModel.findByIdAndUpdate(id, body, { new: true }); // need to add only admin can update role for user
       return c.json({
