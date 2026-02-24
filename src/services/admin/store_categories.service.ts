@@ -80,7 +80,7 @@ export const storeCategoryController = {
       const baseUrl = `${url.origin}`;
       const formattedStoreCate = {
         ...category,
-        image_url: `${baseUrl}/api/store-categories/${category?._id}`,
+        image_url: `${baseUrl}/api/store-categories/img/${category?._id}`,
       };
       return c.json(formattedStoreCate);
     } catch (e) {
