@@ -4,6 +4,7 @@ import { Store } from "../../models/admin/stores.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
+import mongoose from "mongoose";
 const controller = {
   create: async (c: Context) => {
     try {
@@ -12,8 +13,6 @@ const controller = {
       const body: Store = {
         name: formData.get("name") as string,
         owner_name: formData.get("owner_name") as string,
-        gender: formData.get("gender") as string,
-        phone: formData.get("phone") as string,
         user: formData.get("user") as string,
         store_type: formData.get("store_type") as string,
         isActive: formData.get("isActive") == "true",
@@ -87,6 +86,45 @@ const controller = {
       return c.json({
         list: formattedData,
         total: count,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getDetailForAdmin: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const pipeline = [
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(id),
+          },
+        },
+        {
+          $lookup: {
+            from: "orders",
+            localField: "_id",
+            foreignField: "products.store",
+            as: "orderData",
+          },
+        },
+        {
+          $unwind: {
+            path: "$orderData",
+            preserveNullAndEmptyArrays: false,
+          },
+        },
+        {
+          $group: {
+            _id: "$orderData._id",
+            totalIncome: { $sum: "$orderData.products.subtotal" },
+            totalOrder: { $sum: 1 },
+          },
+        },
+      ];
+      const data = await storeModel.aggregate(pipeline);
+      return c.json({
+        data: data,
       });
     } catch (e) {
       return c.json({ error: e }, 500);

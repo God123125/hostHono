@@ -91,7 +91,7 @@ export const dashboardController = {
             _id: "$products.store",
             name: { $first: "$incomeData.name" },
             totalOrder: { $sum: 1 },
-            total_cost: { $sum: "$products.subtotal" },
+            total_income: { $sum: "$products.subtotal" },
           },
         },
       ]);

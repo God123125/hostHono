@@ -8,6 +8,7 @@ routes.post("/login", adminUserController.login);
 routes.get("/profile/:id", adminUserController.getUserProfile);
 routes.patch("update-info/:id", adminUserController.updateAccountInfo);
 routes.patch("update-profile/:id", adminUserController.updateProfile);
+routes.get("/get-overall-data", adminUserController.getOverallDataOfMerchant);
 routes.delete("/:id", adminUserController.delete);
 routes.get("/:id", adminUserController.getById);
 export default routes;

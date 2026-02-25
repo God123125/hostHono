@@ -7,6 +7,8 @@ import jwt from "jsonwebtoken";
 import storeModel from "../../models/admin/stores.js";
 import { readFile } from "fs/promises";
 import path from "path";
+import { orderModel } from "../../models/mobile/order.js";
+
 export const adminUserController = {
   create: async (c: Context) => {
     try {
@@ -228,6 +230,98 @@ export const adminUserController = {
         });
       }
     } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getOverallDataOfMerchant: async (c: Context) => {
+    try {
+      // 1. Total user but only role as shop-owner
+      const totalShopOwners = await adminUserModel.countDocuments({
+        role: "shop-owner",
+      });
+
+      // 2. 10 recent create user (excluding admin role as per getUsers pattern)
+      const recentUsers = await adminUserModel
+        .find({ role: { $ne: "admin" } })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select("-password -profile.data")
+        .lean();
+
+      // 3. Top 10 highest income look up with order data
+      const topIncome = await orderModel.aggregate([
+        { $unwind: "$products" },
+        {
+          $group: {
+            _id: "$products.store",
+            totalIncome: { $sum: "$products.subtotal" },
+          },
+        },
+        { $sort: { totalIncome: -1 } },
+        { $limit: 10 },
+        {
+          $addFields: {
+            storeObjectId: {
+              $convert: {
+                input: "$_id",
+                to: "objectId",
+                onError: null,
+                onNull: null,
+              },
+            },
+          },
+        },
+        { $match: { storeObjectId: { $ne: null } } },
+        {
+          $lookup: {
+            from: "stores",
+            localField: "storeObjectId",
+            foreignField: "_id",
+            as: "storeInfo",
+          },
+        },
+        { $unwind: "$storeInfo" },
+        {
+          $addFields: {
+            userObjectId: {
+              $convert: {
+                input: "$storeInfo.user",
+                to: "objectId",
+                onError: null,
+                onNull: null,
+              },
+            },
+          },
+        },
+        { $match: { userObjectId: { $ne: null } } },
+        {
+          $lookup: {
+            from: "admin_users",
+            localField: "userObjectId",
+            foreignField: "_id",
+            as: "ownerInfo",
+          },
+        },
+        { $unwind: "$ownerInfo" },
+        {
+          $project: {
+            _id: 0,
+            storeId: "$_id",
+            totalIncome: 1,
+            storeName: "$storeInfo.name",
+            ownerName: "$ownerInfo.username",
+            ownerEmail: "$ownerInfo.email",
+          },
+        },
+      ]);
+
+      return c.json({
+        total_shop_owners: totalShopOwners,
+        recent_users: recentUsers,
+        top_income: topIncome,
+      });
+    } catch (e) {
+      console.error(e);
       return c.json({ error: e }, 500);
     }
   },
