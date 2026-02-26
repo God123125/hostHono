@@ -13,7 +13,7 @@ const controller = {
       const body: Store = {
         name: formData.get("name") as string,
         owner_name: formData.get("owner_name") as string,
-        merchant: formData.get("user") as string,
+        merchant: formData.get("merchant") as string,
         store_type: formData.get("store_type") as string,
         isActive: formData.get("isActive") == "true",
       };

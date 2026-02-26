@@ -62,75 +62,73 @@ export const orderController = {
       let status = "";
       if (isConfirmOrder) {
         status = orderStatus.completed;
-
-        const orderCommissions = await orderModel.aggregate([
-          // Match the specific order
-          { $match: { _id: new mongoose.Types.ObjectId(id) } },
-
-          // Unwind product array to work with each product individually
-          { $unwind: "$products" },
-
-          // Lookup store for each product
+        const data = await orderModel.aggregate([
           {
-            $addFields: { storeObjectId: { $toObjectId: "$products.store" } },
+            $match: { _id: new mongoose.Types.ObjectId(id) },
+          },
+          {
+            $unwind: "$products",
+          },
+          {
+            $addFields: {
+              "products.store": { $toObjectId: "$products.store" },
+            },
           },
           {
             $lookup: {
               from: "stores",
-              localField: "products.store", // adjust to your field name
+              localField: "products.store",
               foreignField: "_id",
-              as: "store",
+              as: "storeDetails",
             },
           },
-          { $unwind: "$store" },
-
-          // Lookup merchant via store
           {
-            $lookup: {
-              from: "merchants",
-              localField: "store.merchant", // adjust to your field name
-              foreignField: "_id",
-              as: "merchant",
-            },
+            $unwind: "$storeDetails",
           },
-          { $unwind: "$merchant" },
-
-          // Group by merchant to aggregate total amount per merchant
-          {
-            $group: {
-              _id: "$merchant._id",
-              merchant: { $first: "$merchant" },
-              totalAmount: {
-                $sum: { $multiply: ["$product.price", "$product.quantity"] },
-              }, // adjust fields
-              commissionRate: { $first: "$merchant.commision_rate" },
-            },
-          },
-
-          // Calculate commission amount
           {
             $addFields: {
-              commissionAmount: {
-                $multiply: ["$totalAmount", "$commissionRate"],
+              "storeDetails.merchant": {
+                $toObjectId: "$storeDetails.merchant",
               },
             },
           },
-        ]);
+          {
+            $lookup: {
+              from: "merchants",
+              localField: "storeDetails.merchant",
+              foreignField: "_id",
+              as: "merchantDetails",
+            },
+          },
 
-        // Create commission records for each merchant
-        const commissionPromises = orderCommissions.map(async (entry) => {
-          const body = {
-            merchant: entry._id,
-            order: id,
-            amount: entry.commissionAmount,
-            rate: entry.commissionRate,
+          {
+            $unwind: "$merchantDetails",
+          },
+          {
+            $project: {
+              orderId: "$_id",
+              product: "$products",
+              store: "$storeDetails",
+              merchant: "$merchantDetails._id",
+              merchantName: "$merchantDetails.name",
+              commissionRate: "$merchantDetails.commission_rate",
+              productPrice: "$products.price",
+              quantity: "$products.qty",
+            },
+          },
+        ]);
+        const commissions = data.map((item) => {
+          const saleAmount = item.productPrice * item.quantity;
+          const rate = item.commissionRate ? item.commissionRate : 0.1; // ✅ now correctly referenced
+
+          return {
+            merchant: item.merchant.toString(),
+            amount: (saleAmount * rate).toFixed(2),
+            rate: rate,
             status: "pending",
           };
-          return commissionModel.create(body);
         });
-        console.log(commissionPromises);
-
-        await Promise.all(commissionPromises);
+        await commissionModel.insertMany(commissions);
       } else {
         status = orderStatus.canceled;
       }

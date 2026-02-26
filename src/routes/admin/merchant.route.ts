@@ -4,6 +4,7 @@ const routes = new Hono();
 routes.get("/", merchantController.getMany);
 routes.get("/search", merchantController.search);
 routes.get("/overall-stats", merchantController.getMerchantOverallStats);
+routes.get("/commissions", merchantController.getCommissions);
 routes.post("/", merchantController.createMerchant);
 routes.post("/login", merchantController.login);
 routes.patch("/update-info/:id", merchantController.updateAccountInfo);

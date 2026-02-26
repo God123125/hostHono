@@ -263,6 +263,55 @@ export const merchantController = {
       return c.json({ error: e }, 500);
     }
   },
+  getCommissions: async (c: Context) => {
+    const data = await commissionModel.aggregate([
+      {
+        $addFields: {
+          merchant: { $toObjectId: "$merchant" },
+        },
+      },
+      {
+        $lookup: {
+          from: "merchants",
+          localField: "merchant",
+          foreignField: "_id",
+          as: "merchantData",
+        },
+      },
+      {
+        $unwind: "$merchantData",
+      },
+      {
+        $group: {
+          _id: "$merchantData._id",
+          merchant_name: { $first: "$merchantData.name" },
+          merchant_email: { $first: "$merchantData.email" },
+          merchant_phone: { $first: "$merchantData.phone" },
+          totalAmount: { $sum: "$amount" },
+          rate: { $first: "$rate" },
+          status: { $first: "$status" },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          merchant: {
+            _id: "$_id",
+            name: "$merchant_name",
+            email: "$merchant_email",
+            phone: "$merchant_phone",
+          },
+          totalAmount: 1,
+          rate: 1,
+          status: 1,
+          count: 1,
+        },
+      },
+    ]);
+
+    return c.json({ list: data });
+  },
 };
 function getToken(userId: mongoose.Types.ObjectId) {
   const secret = process.env.JWT_KEY;
