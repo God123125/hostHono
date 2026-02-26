@@ -31,6 +31,6 @@ const commissionSchema = new Schema<Commision>(
   },
 );
 export const commissionModel = mongoose.model<Commision>(
-  "commission",
+  "commissions",
   commissionSchema,
 );

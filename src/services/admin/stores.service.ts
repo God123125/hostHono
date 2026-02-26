@@ -71,7 +71,10 @@ const controller = {
           path: "merchant",
           select: ["-profile.data", "-password"],
         })
-        .populate("store_type")
+        .populate({
+          path: "store_type",
+          select: "-image.data",
+        })
         .select("-store_img.data")
         .lean();
       const count = stores.length;
@@ -158,6 +161,7 @@ const controller = {
         msg: "Store updated successfully!",
       });
     } catch (e) {
+      console.log(e);
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }

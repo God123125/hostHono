@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import productController from "../../services/admin/products.service.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
-routes.get("/", productController.getMany);
+// routes.use("*", verifyToken);
+routes.get("/", verifyToken, productController.getMany);
 routes.get("/grouped", productController.getProductsGroupedByCategory);
 routes.get("/search", productController.search);
-routes.post("/", productController.create);
-routes.patch("/update-info/:id", productController.updateInfo);
+routes.post("/", verifyToken, productController.create);
+routes.patch("/update-info/:id", verifyToken, productController.updateInfo);
 routes.patch("/update-image/:id", productController.updateImage);
 routes.delete("/:id", productController.delete);
 routes.get("/img/:id", productController.getImage);

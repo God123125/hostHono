@@ -25,6 +25,8 @@ export const merchantController = {
         role: formData.get("role") as string,
         phone: formData.get("phone") as string,
         address: formData.get("address") as string,
+        commission_rate: Number(formData.get("commission_rate")),
+        isActive: formData.get("isActive") == "true",
       };
       if (file && file.size > 0) {
         // User uploaded a profile image
@@ -60,6 +62,7 @@ export const merchantController = {
         msg: "Merchant created successfully!",
       });
     } catch (e) {
+      console.log(e);
       return c.json({ error: e }, 500);
     }
   },
@@ -79,8 +82,11 @@ export const merchantController = {
         {
           $lookup: {
             from: "stores",
-            localField: "merchantIdStr",
-            foreignField: "merchant",
+            let: { merchantIdStr: "$merchantIdStr" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$merchant", "$$merchantIdStr"] } } },
+              { $project: { store_img: 0 } }, // ✅ only works inside pipeline
+            ],
             as: "stores",
           },
         },
@@ -91,7 +97,7 @@ export const merchantController = {
         },
       ]);
       return c.json({
-        data: merchants,
+        list: merchants,
       });
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -100,8 +106,16 @@ export const merchantController = {
   updateAccountInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const { name, username, email, password, role, phone } =
-        await c.req.json();
+      const {
+        name,
+        username,
+        email,
+        password,
+        role,
+        phone,
+        isActive,
+        address,
+      } = await c.req.json();
 
       const hashedPassword = password
         ? await bcrpyt.hash(password, await bcrpyt.genSalt(10))
@@ -115,6 +129,8 @@ export const merchantController = {
           password: hashedPassword,
           role,
           phone,
+          address,
+          isActive,
         }).filter(([_, v]) => v !== undefined),
       );
 
@@ -122,6 +138,7 @@ export const merchantController = {
 
       return c.json({ msg: "Merchant updated successfully!" });
     } catch (e) {
+      console.log(e);
       return c.json({ error: e }, e instanceof z.ZodError ? 400 : 500);
     }
   },

@@ -28,6 +28,7 @@ const controller = {
           data: Buffer.from(buffer),
           length: file.size,
         },
+        createdBy: c.get("user"),
       };
 
       const validated = Product.parse(productData);
@@ -50,6 +51,8 @@ const controller = {
     try {
       const { storeId, limit, category } = c.req.query();
       const query: any = {};
+      const user = await c.get("user");
+      query.createdBy = user;
       if (storeId) query.store = storeId;
       if (category) query.category = category;
       const products = await productModel
@@ -132,6 +135,7 @@ const controller = {
         discount: Number(body.discount),
         store: body.store,
         totalPrice: totalPrice,
+        createdBy: c.get("user"),
       };
       const updated = await productModel
         .findByIdAndUpdate(id, productData, { new: true })

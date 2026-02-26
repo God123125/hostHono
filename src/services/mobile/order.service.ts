@@ -68,13 +68,16 @@ export const orderController = {
           { $match: { _id: new mongoose.Types.ObjectId(id) } },
 
           // Unwind product array to work with each product individually
-          { $unwind: "$product" },
+          { $unwind: "$products" },
 
           // Lookup store for each product
           {
+            $addFields: { storeObjectId: { $toObjectId: "$products.store" } },
+          },
+          {
             $lookup: {
               from: "stores",
-              localField: "product.storeId", // adjust to your field name
+              localField: "products.store", // adjust to your field name
               foreignField: "_id",
               as: "store",
             },
@@ -123,10 +126,9 @@ export const orderController = {
             rate: entry.commissionRate,
             status: "pending",
           };
-
-          const validated = Commision.parse(body);
-          return commissionModel.create(validated);
+          return commissionModel.create(body);
         });
+        console.log(commissionPromises);
 
         await Promise.all(commissionPromises);
       } else {
