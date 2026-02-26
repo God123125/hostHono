@@ -4,6 +4,8 @@ import { Order } from "../../models/mobile/order.js";
 import { cartModel } from "../../models/mobile/cart.js";
 import { orderStatus } from "../../enum/order-status.enum.js";
 import * as z from "zod";
+import { Commision, commissionModel } from "../../models/admin/commission.js";
+import mongoose from "mongoose";
 export const orderController = {
   checkOut: async (c: Context) => {
     try {
@@ -58,9 +60,75 @@ export const orderController = {
       const id = c.req.param("id");
       const { isConfirmOrder } = await c.req.json();
       let status = "";
-      console.log(isConfirmOrder);
       if (isConfirmOrder) {
         status = orderStatus.completed;
+
+        const orderCommissions = await orderModel.aggregate([
+          // Match the specific order
+          { $match: { _id: new mongoose.Types.ObjectId(id) } },
+
+          // Unwind product array to work with each product individually
+          { $unwind: "$product" },
+
+          // Lookup store for each product
+          {
+            $lookup: {
+              from: "stores",
+              localField: "product.storeId", // adjust to your field name
+              foreignField: "_id",
+              as: "store",
+            },
+          },
+          { $unwind: "$store" },
+
+          // Lookup merchant via store
+          {
+            $lookup: {
+              from: "merchants",
+              localField: "store.merchant", // adjust to your field name
+              foreignField: "_id",
+              as: "merchant",
+            },
+          },
+          { $unwind: "$merchant" },
+
+          // Group by merchant to aggregate total amount per merchant
+          {
+            $group: {
+              _id: "$merchant._id",
+              merchant: { $first: "$merchant" },
+              totalAmount: {
+                $sum: { $multiply: ["$product.price", "$product.quantity"] },
+              }, // adjust fields
+              commissionRate: { $first: "$merchant.commision_rate" },
+            },
+          },
+
+          // Calculate commission amount
+          {
+            $addFields: {
+              commissionAmount: {
+                $multiply: ["$totalAmount", "$commissionRate"],
+              },
+            },
+          },
+        ]);
+
+        // Create commission records for each merchant
+        const commissionPromises = orderCommissions.map(async (entry) => {
+          const body = {
+            merchant: entry._id,
+            order: id,
+            amount: entry.commissionAmount,
+            rate: entry.commissionRate,
+            status: "pending",
+          };
+
+          const validated = Commision.parse(body);
+          return commissionModel.create(validated);
+        });
+
+        await Promise.all(commissionPromises);
       } else {
         status = orderStatus.canceled;
       }

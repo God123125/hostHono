@@ -1,0 +1,12 @@
+import { Hono } from "hono";
+import { merchantController } from "../../services/admin/merchant.service.js";
+const routes = new Hono();
+routes.get("/", merchantController.getMany);
+routes.get("/search", merchantController.search);
+routes.get("/overall-stats", merchantController.getMerchantOverallStats);
+routes.post("/", merchantController.createMerchant);
+routes.post("/login", merchantController.login);
+routes.patch("/update-info/:id", merchantController.updateAccountInfo);
+routes.patch("/update-profile/:id", merchantController.updateProfile);
+routes.delete("/:id", merchantController.delete);
+export default routes;

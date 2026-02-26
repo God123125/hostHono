@@ -4,7 +4,7 @@ import { adminUser } from "../../models/admin/admin-user.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import storeModel from "../../models/admin/stores.js";
+import { storeModel } from "../../models/admin/stores.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
@@ -151,24 +151,26 @@ export const adminUserController = {
     try {
       const id = c.req.param("id");
       const { username, email, password, role, phone } = await c.req.json();
-      const body: any = {};
-      if (username) body.username = username;
-      if (email) body.email = email;
-      if (password) {
-        const salt = await bcrpyt.genSalt(10);
-        body.password = await bcrpyt.hash(password, salt);
-      }
-      if (phone) body.phone = phone;
-      if (role) body.role = role;
-      await adminUserModel.findByIdAndUpdate(id, body, { new: true }); // need to add only admin can update role for user
-      return c.json({
-        msg: "User udpated successfully!",
-      });
+
+      const hashedPassword = password
+        ? await bcrpyt.hash(password, await bcrpyt.genSalt(10))
+        : undefined;
+
+      const body = Object.fromEntries(
+        Object.entries({
+          username,
+          email,
+          password: hashedPassword,
+          role,
+          phone,
+        }).filter(([_, v]) => v !== undefined),
+      );
+
+      await adminUserModel.findByIdAndUpdate(id, body, { new: true });
+
+      return c.json({ msg: "User updated successfully!" });
     } catch (e) {
-      if (e instanceof z.ZodError) {
-        return c.json({ error: e }, 400);
-      }
-      return c.json({ error: e }, 500);
+      return c.json({ error: e }, e instanceof z.ZodError ? 400 : 500);
     }
   },
   updateProfile: async (c: Context) => {

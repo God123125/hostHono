@@ -3,7 +3,7 @@ import * as z from "zod";
 export const Store = z.object({
   name: z.string(),
   owner_name: z.string(),
-  user: z.string(),
+  merchant: z.string(),
   store_type: z.string(),
   isActive: z.boolean(),
   store_img: z
@@ -39,10 +39,10 @@ const storeSchema = new Schema<Store>({
     data: Buffer,
     length: Number,
   },
-  user: {
+  merchant: {
     type: String,
-    ref: "admin_users",
+    ref: "merchants",
     required: true,
   },
 });
-export default mongoose.model<Store>("stores", storeSchema);
+export const storeModel = mongoose.model<Store>("stores", storeSchema);

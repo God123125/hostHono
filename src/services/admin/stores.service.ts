@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import storeModel from "../../models/admin/stores.js";
+import { storeModel } from "../../models/admin/stores.js";
 import { Store } from "../../models/admin/stores.js";
 import * as z from "zod";
 import path from "path";
@@ -13,7 +13,7 @@ const controller = {
       const body: Store = {
         name: formData.get("name") as string,
         owner_name: formData.get("owner_name") as string,
-        user: formData.get("user") as string,
+        merchant: formData.get("user") as string,
         store_type: formData.get("store_type") as string,
         isActive: formData.get("isActive") == "true",
       };
@@ -60,15 +60,15 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
-      const userId = c.req.query("userId");
+      const merchantId = c.req.query("merchantId");
       const storeType = c.req.query("storeType");
       const filter: any = {};
-      if (userId) filter.user = userId;
+      if (merchantId) filter.merchant = merchantId;
       if (storeType) filter.store_type = storeType;
       const stores = await storeModel
         .find(filter)
         .populate({
-          path: "user",
+          path: "merchant",
           select: ["-profile.data", "-password"],
         })
         .populate("store_type")
@@ -136,7 +136,7 @@ const controller = {
       const store = await storeModel
         .findById(id)
         .select("-image.data")
-        .populate("user")
+        .populate("merchant")
         .lean();
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;

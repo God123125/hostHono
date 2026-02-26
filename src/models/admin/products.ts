@@ -17,6 +17,7 @@ export const Product = z.object({
     length: z.number(),
   }),
   image_url: z.string().optional(),
+  createdBy: z.string(),
 });
 export type Product = z.infer<typeof Product>;
 const productSchema = new Schema<Product>(
@@ -64,6 +65,11 @@ const productSchema = new Schema<Product>(
     },
     image_url: {
       type: String,
+    },
+    createdBy: {
+      type: String,
+      ref: "merchants",
+      required: true,
     },
   },
   { timestamps: true },
