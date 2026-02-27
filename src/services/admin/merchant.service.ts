@@ -309,8 +309,19 @@ export const merchantController = {
         },
       },
     ]);
-
     return c.json({ list: data });
+  },
+  updateComission: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const body = await c.req.json();
+      await commissionModel.findByIdAndUpdate(id, body);
+      return c.json({
+        msg: "Commission updated successfully!",
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
   },
 };
 function getToken(userId: mongoose.Types.ObjectId) {

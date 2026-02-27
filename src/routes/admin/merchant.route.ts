@@ -9,5 +9,6 @@ routes.post("/", merchantController.createMerchant);
 routes.post("/login", merchantController.login);
 routes.patch("/update-info/:id", merchantController.updateAccountInfo);
 routes.patch("/update-profile/:id", merchantController.updateProfile);
+routes.patch("/update-commission", merchantController.updateComission);
 routes.delete("/:id", merchantController.delete);
 export default routes;
