@@ -50,7 +50,7 @@ const storeSchema = new Schema<Store>({
   },
   user: {
     type: String,
-    ref: "admin_users",
+    ref: "super-admin",
     required: true,
   },
 });

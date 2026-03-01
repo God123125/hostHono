@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import storeModel from "../../models/admin/stores.js";
-import { Store } from "../../models/admin/stores.js";
+import storeModel from "../../models/merchant/stores.js";
+import { Store } from "../../models/merchant/stores.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
@@ -143,7 +143,7 @@ const controller = {
       }
       if (!body.store_img) {
         return c.json({ msg: "Please input file" }, 400);
-      }
+  `1`    }
       await storeModel.findByIdAndUpdate(id, body);
       return c.json({
         msg: "Store image updated successfully!",

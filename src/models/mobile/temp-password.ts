@@ -1,6 +1,5 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
-import { required } from "zod/mini";
 export const tempPass = z.object({
   code: z.number(),
   email: z.string(),

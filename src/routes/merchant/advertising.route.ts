@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import advertisingController from "../../services/admin/advertising.service.js";
+import advertisingController from "../../services/merchant/advertising.service.js";
 const routes = new Hono();
 routes.get("/", advertisingController.getMany);
 routes.post("/", advertisingController.create);

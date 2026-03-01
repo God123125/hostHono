@@ -1,6 +1,6 @@
 // routes/admin/customer-chat.ts
 import { Hono } from "hono";
-import { chatController } from "../../services/admin/customer-chat.service.js";
+import { chatController } from "../../services/merchant/customer-chat.service.js";
 
 // Export a function that receives upgradeWebSocket
 export default (upgradeWebSocket: any) => {

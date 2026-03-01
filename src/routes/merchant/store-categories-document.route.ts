@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { storeCateDocController } from "../../services/admin/store-categories-document.service.js";
+import { storeCateDocController } from "../../services/merchant/store-categories-document.service.js";
 const routes = new Hono();
 routes.post("/:cateId", storeCateDocController.create);
 routes.get("/:cateId", storeCateDocController.getByStoreCateId);

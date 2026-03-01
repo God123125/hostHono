@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
-export const adminUser = z.object({
-  username: z.string().optional(),
+export const superAdmin = z.object({
+  fullname: z.string().optional(),
   email: z.string(),
   password: z.string(),
   phone: z.string().optional(),
@@ -15,10 +15,10 @@ export const adminUser = z.object({
     .optional(),
   role: z.string(),
 });
-export type adminUser = z.infer<typeof adminUser>;
-const adminUserSchema = new Schema<adminUser>(
+export type superAdmin = z.infer<typeof superAdmin>;
+const superAdminSchema = new Schema<superAdmin>(
   {
-    username: {
+    fullname: {
       type: String,
       required: false,
     },
@@ -47,4 +47,4 @@ const adminUserSchema = new Schema<adminUser>(
   },
   { timestamps: true },
 );
-export default mongoose.model<adminUser>("admin_users", adminUserSchema);
+export default mongoose.model<superAdmin>("super-admin", superAdminSchema);

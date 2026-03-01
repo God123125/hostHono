@@ -8,7 +8,7 @@ import "./db/db.js";
 import { cors } from "hono/cors";
 import honoRoutes from "./routes/routers.js";
 import { createNodeWebSocket } from "@hono/node-ws";
-import chatRoute from "./routes/admin/customer-chat.route.js";
+import chatRoute from "./routes/merchant/customer-chat.route.js";
 const app = new Hono();
 const PORT = process.env.PORT || 3000;
 const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });

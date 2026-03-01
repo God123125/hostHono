@@ -1,31 +1,36 @@
 import type { Context } from "hono";
-import adminUserModel from "../../models/admin/admin-user.js";
-import { adminUser } from "../../models/admin/admin-user.js";
+import superAdminModel from "../../models/super-admin/super-admin.js";
+import { superAdmin } from "../../models/super-admin/super-admin.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import storeModel from "../../models/admin/stores.js";
 import { readFile } from "fs/promises";
 import path from "path";
-export const adminUserController = {
+export const superAdminController = {
   create: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
-      const formData = await c.req.formData();
-      const file = formData.get("profile") as File;
-      const password = formData.get("password");
-      const hashPass = await bcrpyt.hash(password as string, salt);
+      const bodyData = await c.req.parseBody();
+      const email = bodyData["email"] as string;
+
+      // Check if email already exists
+      const existingUser = await superAdminModel.findOne({ email });
+      if (existingUser) {
+        return c.json({ error: "Email already exists!" }, 400);
+      }
+
+      const file = bodyData["profile"] as File;
+      const password = bodyData["password"] as string;
+      const hashPass = await bcrpyt.hash(password, salt);
       const body: any = {
-        username: formData.get("username") as string,
-        email: formData.get("email") as string,
+        fullname: bodyData["fullname"] as string,
+        email: bodyData["email"] as string,
         password: hashPass,
-        role: formData.get("role") as string,
-        phone: formData.get("phone") as string,
+        role: "super-admin",
+        phone: bodyData["phone"] as string,
       };
 
-      // Handle profile: use uploaded file or default image
       if (file && file.size > 0) {
-        // User uploaded a profile image
         const buffer = await file.arrayBuffer();
         body.profile = {
           filename: file.name,
@@ -34,7 +39,6 @@ export const adminUserController = {
           length: file.size,
         };
       } else {
-        // No file uploaded, use default image from src/images folder
         const defaultImagePath = path.join(
           process.cwd(),
           "src",
@@ -53,27 +57,28 @@ export const adminUserController = {
           console.log("Default image not found at:", defaultImagePath);
         }
       }
-      const user = new adminUserModel(body);
+      const user = new superAdminModel(body);
       await user.save();
       return c.json({
-        msg: "User created successfully!",
+        msg: "Super Admin created successfully!",
       });
-    } catch (e) {
-      return c.json({ error: e }, 500);
+    } catch (e: any) {
+      return c.json({ error: e.message || e }, 500);
     }
   },
   login: async (c: Context) => {
     try {
       const { email, password } = await c.req.json();
-      const user = await adminUserModel.findOne({ email });
-      const store = await storeModel.findOne({ user: user?._id?.toString() });
+      const user = await superAdminModel.findOne({ email, role: "super-admin" });
+
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
+
       const userBody = {
-        username: user?.username,
+        fullname: user?.fullname,
         email: user?.email,
         role: user?.role,
-        store: store,
       };
-      if (!user) return c.json({ message: "Unauthenticated" }, 401);
+
       const compare = await bcrpyt.compare(password, user.password);
       if (!compare) return c.json({ message: "Wrong password!" }, 401);
       const token = getToken();
@@ -84,14 +89,14 @@ export const adminUserController = {
         expireAt: expireDate,
         message: "Login Success",
       });
-    } catch (e) {
-      return c.json({ error: e }, 500);
+    } catch (e: any) {
+      return c.json({ error: e.message || e }, 500);
     }
   },
   getUsers: async (c: Context) => {
     try {
-      const condition = { role: { $ne: "admin" } }; // condition not select admin
-      const users = await adminUserModel
+      const condition = { role: "super-admin" }; // only select super-admin
+      const users = await superAdminModel
         .find(condition)
         .select(["-profile.data", "-password"])
         .lean();
@@ -100,38 +105,41 @@ export const adminUserController = {
       const formattedUsers = users.map((el) => {
         return {
           ...el,
-          profile_url: `${baseUrl}/api/admin-users/profile/${el._id}`,
+          profile_url: `${baseUrl}/api/super-admins/profile/${el._id}`,
         };
       });
       return c.json({
         list: formattedUsers,
       });
-    } catch (e) {
-      return c.json({ error: e }, 500);
+    } catch (e: any) {
+      return c.json({ error: e.message || e }, 500);
     }
   },
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const user: any = await adminUserModel
-        .findById(id)
+      const user: any = await superAdminModel
+        .findOne({ _id: id, role: "super-admin" })
         .select(["-password", "-profile.data"])
         .lean();
+
+      if (!user) return c.json({ message: "Not Found" }, 404);
+
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const formattedUser = {
         ...user,
-        profile_url: `${baseUrl}/api/admin-users/profile/${user._id}`,
+        profile_url: `${baseUrl}/api/super-admins/profile/${user._id}`,
       };
       return c.json(formattedUser);
-    } catch (e) {
-      return c.json({ error: e }, 500);
+    } catch (e: any) {
+      return c.json({ error: e.message || e }, 500);
     }
   },
   getUserProfile: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const profile = await adminUserModel.findById(id).select("profile");
+      const profile = await superAdminModel.findById(id).select("profile");
       if (profile && profile.profile && profile.profile.data) {
         return c.body(profile.profile.data, 200, {
           "Content-Type": profile.profile.mimetype,
@@ -141,25 +149,25 @@ export const adminUserController = {
           msg: "Image not found",
         });
       }
-    } catch (e) {
-      return c.json({ error: e }, 500);
+    } catch (e: any) {
+      return c.json({ error: e.message || e }, 500);
     }
   },
   updateAccountInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const { username, email, password, role } = await c.req.json();
+      const { fullname, email, password, role } = await c.req.json();
       const body: any = {};
-      if (username) body.username = username;
+      if (fullname) body.fullname = fullname;
       if (email) body.email = email;
       if (password) {
         const salt = await bcrpyt.genSalt(10);
         body.password = await bcrpyt.hash(password, salt);
       }
       if (role) body.role = role;
-      await adminUserModel.findByIdAndUpdate(id, body, { new: true }); // need to add only admin can update role for user
+      await superAdminModel.findOneAndUpdate({ _id: id, role: "super-admin" }, body, { new: true });
       return c.json({
-        msg: "User udpated successfully!",
+        msg: "Super Admin updated successfully!",
       });
     } catch (e) {
       if (e instanceof z.ZodError) {
@@ -171,8 +179,8 @@ export const adminUserController = {
   updateProfile: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const formData = await c.req.formData();
-      const file = formData.get("profile") as File;
+      const bodyData = await c.req.parseBody();
+      const file = bodyData["profile"] as File;
       const body: any = {};
 
       if (file && file.size > 0) {
@@ -189,12 +197,12 @@ export const adminUserController = {
       }
 
       // Only validate profile part
-      const profileSchema = adminUser.pick({ profile: true });
+      const profileSchema = superAdmin.pick({ profile: true });
       const validated = profileSchema.parse(body);
 
-      await adminUserModel.findByIdAndUpdate(id, validated);
+      await superAdminModel.findOneAndUpdate({ _id: id, role: "super-admin" }, validated);
       return c.json({
-        msg: "User updated successfully!",
+        msg: "Super Admin updated successfully!",
       });
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -203,9 +211,9 @@ export const adminUserController = {
   delete: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      await adminUserModel.findByIdAndDelete(id);
+      await superAdminModel.findOneAndDelete({ _id: id, role: "super-admin" });
       return c.json({
-        msg: "User deleted successfully!",
+        msg: "Super Admin deleted successfully!",
       });
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -214,8 +222,9 @@ export const adminUserController = {
   search: async (c: Context) => {
     try {
       const search = decodeURIComponent(c.req.query("q") as string);
-      const data = await adminUserModel.find({
-        username: { $regex: search, $options: "i" },
+      const data = await superAdminModel.find({
+        fullname: { $regex: search, $options: "i" },
+        role: "super-admin"
       });
       if (data.length > 0) {
         return c.json({

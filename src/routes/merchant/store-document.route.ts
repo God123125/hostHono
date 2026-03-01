@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { storeDocController } from "../../services/admin/stores-document.service.js";
+import { storeDocController } from "../../services/merchant/stores-document.service.js";
 const routes = new Hono();
 routes.post("/:id", storeDocController.create);
 routes.get("/:id", storeDocController.getByStoreId);

@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import advertisingModel from "../../models/admin/advertising.js";
-import { advertising } from "../../models/admin/advertising.js";
+import advertisingModel from "../../models/merchant/advertising.js";
+import { advertising } from "../../models/merchant/advertising.js";
 import * as z from "zod";
 const controller = {
   create: async (c: Context) => {
