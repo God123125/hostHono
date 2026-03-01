@@ -17,7 +17,7 @@ export const orderController = {
       );
       const body = {
         user: c.get("user"),
-        total: total,
+        total: total + req.delivery_fee,
         delivery_fee: req.delivery_fee,
         products: req.products,
         status: orderStatus.pending,

@@ -12,9 +12,8 @@ const controller = {
       const file = formData.get("store_img") as File;
       const body: Store = {
         name: formData.get("name") as string,
-        owner_name: formData.get("owner_name") as string,
         merchant: formData.get("merchant") as string,
-        store_type: formData.get("store_type") as string,
+        store_category: formData.get("store_category") as string,
         isActive: formData.get("isActive") == "true",
       };
       if (file && file.size > 0) {
@@ -61,10 +60,10 @@ const controller = {
   getMany: async (c: Context) => {
     try {
       const merchantId = c.req.query("merchantId");
-      const storeType = c.req.query("storeType");
+      const storeCategory = c.req.query("storeCategory");
       const filter: any = {};
       if (merchantId) filter.merchant = merchantId;
-      if (storeType) filter.store_type = storeType;
+      if (storeCategory) filter.store_category = storeCategory;
       const stores = await storeModel
         .find(filter)
         .populate({
@@ -72,7 +71,7 @@ const controller = {
           select: ["-profile.data", "-password"],
         })
         .populate({
-          path: "store_type",
+          path: "store_category",
           select: "-image.data",
         })
         .select("-store_img.data")
@@ -97,38 +96,171 @@ const controller = {
   getDetailForAdmin: async (c: Context) => {
     try {
       const id = c.req.param("id");
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
       const pipeline = [
+        // ===============================
+        // 1️⃣ MATCH STORE
+        // ===============================
         {
-          $match: {
-            _id: new mongoose.Types.ObjectId(id),
-          },
+          $match: { _id: new mongoose.Types.ObjectId(id) },
         },
+
+        // ===============================
+        // 2️⃣ LOOKUP ORDERS (UNCHANGED LOGIC)
+        // ===============================
         {
           $lookup: {
             from: "orders",
-            localField: "_id",
-            foreignField: "products.store",
+            let: { storeId: { $toString: "$_id" } },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: ["$$storeId", "$products.store"],
+                  },
+                },
+              },
+            ],
             as: "orderData",
           },
         },
+
+        { $unwind: { path: "$orderData", preserveNullAndEmptyArrays: false } },
+        { $unwind: "$orderData.products" },
+
+        {
+          $match: {
+            $expr: {
+              $eq: ["$orderData.products.store", { $toString: "$_id" }],
+            },
+          },
+        },
+
+        {
+          $group: {
+            _id: "$_id",
+            name: { $first: "$name" },
+            merchant: { $first: "$merchant" },
+            totalIncome: { $sum: "$orderData.products.subtotal" },
+            totalOrder: { $addToSet: "$orderData._id" },
+          },
+        },
+
+        // ===============================
+        // 3️⃣ MERCHANT
+        // ===============================
+        {
+          $addFields: {
+            merchantObjId: { $toObjectId: "$merchant" },
+          },
+        },
+
+        {
+          $lookup: {
+            from: "merchants",
+            localField: "merchantObjId",
+            foreignField: "_id",
+            as: "merchant",
+          },
+        },
+
         {
           $unwind: {
-            path: "$orderData",
-            preserveNullAndEmptyArrays: false,
+            path: "$merchant",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // ===============================
+        // 4️⃣ PRODUCT COUNT
+        // ===============================
+        {
+          $addFields: {
+            storeId: { $toString: "$_id" },
+          },
+        },
+
+        {
+          $lookup: {
+            from: "products",
+            localField: "storeId",
+            foreignField: "store",
+            as: "productData",
+          },
+        },
+
+        {
+          $addFields: {
+            totalOrder: { $size: "$totalOrder" },
+            totalProduct: { $size: "$productData" },
+          },
+        },
+
+        // ===============================
+        // 5️⃣ COMMISSION (ONLY PAID)
+        // ===============================
+        {
+          $lookup: {
+            from: "commissions",
+            let: { merchantId: { $toString: "$merchantObjId" } },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$merchant", "$$merchantId"] },
+                      { $eq: ["$status", "paid"] }, // ✅ only paid commission
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "commission",
+          },
+        },
+
+        {
+          $unwind: {
+            path: "$commission",
+            preserveNullAndEmptyArrays: true,
           },
         },
         {
-          $group: {
-            _id: "$orderData._id",
-            totalIncome: { $sum: "$orderData.products.subtotal" },
-            totalOrder: { $sum: 1 },
+          $addFields: {
+            store_img: {
+              $concat: [
+                `${baseUrl}/api/stores/store-image/`,
+                { $toString: "$_id" },
+              ],
+            },
+            merchant_profile: {
+              $concat: [
+                `${baseUrl}/api/merchants/profile/`,
+                { $toString: "$merchantObjId" },
+              ],
+            },
+            commission_paid: {
+              $sum: "$commission.amount",
+            },
+          },
+        },
+        // ===============================
+        // 6️⃣ CLEAN OUTPUT
+        // ===============================
+        {
+          $project: {
+            productData: 0,
+            storeId: 0,
+            merchantObjId: 0,
+            orderData: 0,
+            "merchant.profile": 0,
           },
         },
       ];
       const data = await storeModel.aggregate(pipeline);
-      return c.json({
-        data: data,
-      });
+      const detail = data[0];
+      return c.json(detail);
     } catch (e) {
       return c.json({ error: e }, 500);
     }

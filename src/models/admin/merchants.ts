@@ -17,7 +17,7 @@ export const Merchant = z.object({
     })
     .optional(),
   role: z.string(),
-  commision_rate: z.number().optional(),
+  commission_rate: z.number(),
 });
 export type Merchant = z.infer<typeof Merchant>;
 const merchantSchema = new Schema<Merchant>(
@@ -56,8 +56,11 @@ const merchantSchema = new Schema<Merchant>(
       type: String,
       required: true,
     },
-    commision_rate: {
+    commission_rate: {
       type: Number,
+    },
+    isActive: {
+      type: Boolean,
     },
   },
   { timestamps: true },

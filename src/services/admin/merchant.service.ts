@@ -7,7 +7,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
 import { storeModel } from "../../models/admin/stores.js";
-import type mongoose from "mongoose";
+import mongoose from "mongoose";
 import { commissionModel } from "../../models/admin/commission.js";
 export const merchantController = {
   createMerchant: async (c: Context) => {
@@ -26,7 +26,7 @@ export const merchantController = {
         phone: formData.get("phone") as string,
         address: formData.get("address") as string,
         commission_rate: Number(formData.get("commission_rate")),
-        isActive: formData.get("isActive") == "true",
+        isActive: true,
       };
       if (file && file.size > 0) {
         // User uploaded a profile image
@@ -82,23 +82,100 @@ export const merchantController = {
         {
           $lookup: {
             from: "stores",
-            let: { merchantIdStr: "$merchantIdStr" },
-            pipeline: [
-              { $match: { $expr: { $eq: ["$merchant", "$$merchantIdStr"] } } },
-              { $project: { store_img: 0 } }, // ✅ only works inside pipeline
-            ],
+            localField: "merchantIdStr",
+            foreignField: "merchant",
             as: "stores",
+          },
+        },
+        {
+          $unwind: {
+            path: "$stores",
+            preserveNullAndEmptyArrays: true,
           },
         },
         {
           $project: {
             merchantIdStr: 0,
+            "stores.store_img": 0,
+            "stores.store_type": 0,
           },
         },
       ]);
       return c.json({
         list: merchants,
       });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getProfile: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const img = await merchantModel.findById(id).select("profile");
+      if (img) {
+        return c.body(img!.profile!.data, 200, {
+          "Content-Type": img!.profile!.mimetype,
+        });
+      } else {
+        return c.json({
+          msg: "Image not found!",
+        });
+      }
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getMerchantDetail: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const data = await merchantModel.aggregate([
+        {
+          $project: {
+            "profile.data": 0,
+            password: 0,
+          },
+        },
+        {
+          $match: { _id: new mongoose.Types.ObjectId(id) },
+        },
+        {
+          $addFields: {
+            merchantIdStr: { $toString: "$_id" },
+            profile_url: {
+              $concat: [
+                `${baseUrl}/api/merchants/profile/`,
+                { $toString: "$_id" },
+              ],
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "stores",
+            localField: "merchantIdStr",
+            foreignField: "merchant",
+            as: "stores",
+          },
+        },
+        // {
+        //   $unwind: {
+        //     path: "$stores",
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
+        {
+          $project: {
+            merchantIdStr: 0,
+            "stores.store_img": 0,
+            "stores.store_type": 0,
+            profile: 0,
+          },
+        },
+      ]);
+      const merchant = data[0];
+      return c.json(merchant);
     } catch (e) {
       return c.json({ error: e }, 500);
     }

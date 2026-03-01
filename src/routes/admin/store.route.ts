@@ -3,7 +3,7 @@ import storeController from "../../services/admin/stores.service.js";
 const routes = new Hono();
 routes.get("/", storeController.getMany);
 routes.get("/search", storeController.search);
-routes.get("/detail-admin", storeController.getDetailForAdmin);
+routes.get("/detail-admin/:id", storeController.getDetailForAdmin);
 routes.post("/", storeController.create);
 routes.patch("/:id", storeController.updateInfo);
 routes.delete("/:id", storeController.delete);
