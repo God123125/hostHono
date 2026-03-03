@@ -341,10 +341,27 @@ export const merchantController = {
     }
   },
   getCommissions: async (c: Context) => {
+    const now = new Date();
+    // const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstDayOfMonth = new Date("2026-02-01T17:00:00.000Z");
+    const lastDayOfMonth = new Date("2026-02-28T17:00:00.000Z");
+    // const lastDayOfMonth = new Date(
+    //   now.getFullYear(),
+    //   now.getMonth() + 1,
+    //   0,
+    //   23,
+    //   59,
+    //   59,
+    // );
     const data = await commissionModel.aggregate([
       {
         $addFields: {
           merchant: { $toObjectId: "$merchant" },
+        },
+      },
+      {
+        $match: {
+          createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth },
         },
       },
       {
@@ -364,10 +381,20 @@ export const merchantController = {
           merchant_name: { $first: "$merchantData.name" },
           merchant_email: { $first: "$merchantData.email" },
           merchant_phone: { $first: "$merchantData.phone" },
-          totalAmount: { $sum: "$amount" },
+
+          totalPending: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, "$amount", 0] },
+          },
+          totalPaid: {
+            $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$amount", 0] },
+          },
+
+          countPending: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+          },
+          countPaid: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } },
+
           rate: { $first: "$rate" },
-          status: { $first: "$status" },
-          count: { $sum: 1 },
         },
       },
       {
@@ -379,10 +406,11 @@ export const merchantController = {
             email: "$merchant_email",
             phone: "$merchant_phone",
           },
-          totalAmount: 1,
+          totalPending: 1,
+          totalPaid: 1,
+          countPending: 1,
+          countPaid: 1,
           rate: 1,
-          status: 1,
-          count: 1,
         },
       },
     ]);
@@ -391,10 +419,26 @@ export const merchantController = {
   updateComission: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const body = await c.req.json();
-      await commissionModel.findByIdAndUpdate(id, body);
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      );
+      await commissionModel.updateMany(
+        {
+          merchant: id, // filter by merchant
+          status: "pending", // only pending commissions
+          createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }, // this month
+        },
+        { $set: { status: "paid" } }, // mark them paid
+      );
       return c.json({
-        msg: "Commission updated successfully!",
+        msg: "Commission marked as paid",
       });
     } catch (e) {
       return c.json({ error: e }, 500);

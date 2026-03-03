@@ -284,7 +284,7 @@ const controller = {
       const baseUrl = `${url.origin}`;
       const formattedData = {
         ...store,
-        image_url: `${baseUrl}/api/store/store-image/${store?._id}`,
+        image_url: `${baseUrl}/api/stores/store-image/${store?._id}`,
       };
       return c.json(formattedData);
     } catch (e) {
