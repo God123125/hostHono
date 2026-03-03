@@ -103,59 +103,60 @@ const controller = {
         // 1️⃣ MATCH STORE
         // ===============================
         {
-          $match: { _id: new mongoose.Types.ObjectId(id) },
+          $match: {
+            _id: new mongoose.Types.ObjectId(id),
+          },
         },
 
         // ===============================
-        // 2️⃣ LOOKUP ORDERS (UNCHANGED LOGIC)
+        // 2️⃣ LOOKUP ORDERS (Correct Way)
         // ===============================
         {
           $lookup: {
             from: "orders",
-            let: { storeId: { $toString: "$_id" } },
+            let: { storeId: { $toString: "$_id" } }, // convert store _id to string
             pipeline: [
+              { $unwind: "$products" },
               {
                 $match: {
                   $expr: {
-                    $in: ["$$storeId", "$products.store"],
+                    $eq: ["$products.store", "$$storeId"], // string === string
                   },
                 },
               },
+              {
+                $group: {
+                  _id: null,
+                  totalIncome: { $sum: "$products.subtotal" },
+                  totalOrder: { $addToSet: "$_id" },
+                },
+              },
             ],
-            as: "orderData",
+            as: "orderStats",
           },
         },
 
-        { $unwind: { path: "$orderData", preserveNullAndEmptyArrays: false } },
-        { $unwind: "$orderData.products" },
-
         {
-          $match: {
-            $expr: {
-              $eq: ["$orderData.products.store", { $toString: "$_id" }],
+          $addFields: {
+            totalIncome: {
+              $ifNull: [{ $arrayElemAt: ["$orderStats.totalIncome", 0] }, 0],
+            },
+            totalOrder: {
+              $size: {
+                $ifNull: [{ $arrayElemAt: ["$orderStats.totalOrder", 0] }, []],
+              },
             },
           },
         },
 
-        {
-          $group: {
-            _id: "$_id",
-            name: { $first: "$name" },
-            merchant: { $first: "$merchant" },
-            totalIncome: { $sum: "$orderData.products.subtotal" },
-            totalOrder: { $addToSet: "$orderData._id" },
-          },
-        },
-
         // ===============================
-        // 3️⃣ MERCHANT
+        // 3️⃣ LOOKUP MERCHANT
         // ===============================
         {
           $addFields: {
             merchantObjId: { $toObjectId: "$merchant" },
           },
         },
-
         {
           $lookup: {
             from: "merchants",
@@ -164,7 +165,6 @@ const controller = {
             as: "merchant",
           },
         },
-
         {
           $unwind: {
             path: "$merchant",
@@ -176,56 +176,66 @@ const controller = {
         // 4️⃣ PRODUCT COUNT
         // ===============================
         {
-          $addFields: {
-            storeId: { $toString: "$_id" },
-          },
-        },
-
-        {
           $lookup: {
             from: "products",
-            localField: "storeId",
-            foreignField: "store",
+            let: { storeId: { $toString: "$_id" } }, // convert ObjectId to string
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$store", "$$storeId"], // string === string
+                  },
+                },
+              },
+            ],
             as: "productData",
           },
         },
-
         {
           $addFields: {
-            totalOrder: { $size: "$totalOrder" },
             totalProduct: { $size: "$productData" },
           },
         },
 
         // ===============================
-        // 5️⃣ COMMISSION (ONLY PAID)
+        // 5️⃣ COMMISSION (PAID ONLY)
         // ===============================
         {
           $lookup: {
             from: "commissions",
-            let: { merchantId: { $toString: "$merchantObjId" } },
+            let: { merchantId: { $toString: "$merchant._id" } }, // only if commission.merchant is STRING
             pipeline: [
               {
                 $match: {
                   $expr: {
                     $and: [
                       { $eq: ["$merchant", "$$merchantId"] },
-                      { $eq: ["$status", "paid"] }, // ✅ only paid commission
+                      { $eq: ["$status", "paid"] },
                     ],
                   },
                 },
               },
+              {
+                $group: {
+                  _id: null,
+                  totalPaid: { $sum: "$amount" },
+                },
+              },
             ],
-            as: "commission",
+            as: "commissionData",
+          },
+        },
+        {
+          $addFields: {
+            commission_paid: {
+              $ifNull: [{ $arrayElemAt: ["$commissionData.totalPaid", 0] }, 0],
+            },
           },
         },
 
-        {
-          $unwind: {
-            path: "$commission",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
+        // ===============================
+        // 6️⃣ ADD IMAGE URLS
+        // ===============================
         {
           $addFields: {
             store_img: {
@@ -237,30 +247,27 @@ const controller = {
             merchant_profile: {
               $concat: [
                 `${baseUrl}/api/merchants/profile/`,
-                { $toString: "$merchantObjId" },
+                { $toString: "$merchant._id" },
               ],
-            },
-            commission_paid: {
-              $sum: "$commission.amount",
             },
           },
         },
+
         // ===============================
-        // 6️⃣ CLEAN OUTPUT
+        // 7️⃣ CLEAN OUTPUT
         // ===============================
         {
           $project: {
+            orderStats: 0,
+            commissionData: 0,
             productData: 0,
-            storeId: 0,
-            merchantObjId: 0,
-            orderData: 0,
             "merchant.profile": 0,
           },
         },
       ];
       const data = await storeModel.aggregate(pipeline);
       const detail = data[0];
-      return c.json(detail);
+      return c.json(detail ? detail : {});
     } catch (e) {
       return c.json({ error: e }, 500);
     }
