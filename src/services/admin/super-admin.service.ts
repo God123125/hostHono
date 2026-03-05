@@ -9,6 +9,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
 import mongoose from "mongoose";
+import { UserRole } from "../../enum/user-role.enum.js";
 
 export const superAdminController = {
   create: async (c: Context) => {
@@ -78,14 +79,18 @@ export const superAdminController = {
     try {
       const { email, password } = await c.req.json();
       const user = await superAdminModel.findOne({ email });
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
       const store = await storeModel
         .findOne({
           merchant: user!._id.toString(),
         })
         .select("-store_img");
       const userBody = {
+        fullName: user?.fullName,
         username: user?.username,
         email: user?.email,
+        userProfile: `${baseUrl}/api/admins/profile/${user?._id}`,
         role: user?.role,
         store: store,
       };
@@ -106,7 +111,7 @@ export const superAdminController = {
   },
   getUsers: async (c: Context) => {
     try {
-      const condition = { role: "super-admin" }; // only select super-admin
+      const condition = { role: { $ne: UserRole.SuperAdmin.toString() } }; // only select super-admin
       const users = await superAdminModel
         .find(condition)
         .select(["-profile", "-password"])
@@ -130,7 +135,7 @@ export const superAdminController = {
     try {
       const id = c.req.param("id");
       const user: any = await superAdminModel
-        .findOne({ _id: id, role: "super-admin" })
+        .findById(id)
         .select(["-password", "-profile.data"])
         .lean();
 

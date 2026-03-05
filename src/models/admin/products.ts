@@ -10,12 +10,14 @@ export const Product = z.object({
   discount: z.number(),
   totalPrice: z.number(),
   store: z.string(),
-  image: z.object({
-    filename: z.string(),
-    mimetype: z.string(),
-    data: z.any(), // Buffer
-    length: z.number(),
-  }),
+  image: z
+    .object({
+      filename: z.string(),
+      mimetype: z.string(),
+      data: z.any(), // Buffer
+      length: z.number(),
+    })
+    .optional(),
   image_url: z.string().optional(),
   createdBy: z.string(),
 });

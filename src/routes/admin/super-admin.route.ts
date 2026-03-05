@@ -3,11 +3,14 @@ import { superAdminController } from "../../services/admin/super-admin.service.j
 const routes = new Hono();
 routes.get("/", superAdminController.getUsers);
 routes.get("/search", superAdminController.search);
+routes.get("/overall-stats", superAdminController.getMerchantOverallStats);
+routes.get("/commissions", superAdminController.getCommissions);
 routes.post("/", superAdminController.create);
 routes.post("/login", superAdminController.login);
 routes.get("/profile/:id", superAdminController.getUserProfile);
 routes.patch("update-info/:id", superAdminController.updateAccountInfo);
 routes.patch("update-profile/:id", superAdminController.updateProfile);
+routes.patch("/update-commissions/:id", superAdminController.updateComission);
 routes.delete("/:id", superAdminController.delete);
 routes.get("/:id", superAdminController.getById);
 export default routes;
