@@ -12,6 +12,7 @@ export const storeCategoryController = {
       const body: any = {
         name: formData.get("name") as string,
         des: formData.get("des") as string,
+        isActive: formData.get("isActive") == "true",
       };
       if (file && file.size > 0) {
         // User uploaded a profile image
@@ -79,7 +80,7 @@ export const storeCategoryController = {
       const baseUrl = `${url.origin}`;
       const formattedStoreCate = {
         ...category,
-        image_url: `${baseUrl}/api/store-categories/${category?._id}`,
+        image_url: `${baseUrl}/api/store-categories/img/${category?._id}`,
       };
       return c.json(formattedStoreCate);
     } catch (e) {

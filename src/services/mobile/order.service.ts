@@ -4,6 +4,8 @@ import { Order } from "../../models/mobile/order.js";
 import { cartModel } from "../../models/mobile/cart.js";
 import { orderStatus } from "../../enum/order-status.enum.js";
 import * as z from "zod";
+import { Commision, commissionModel } from "../../models/admin/commission.js";
+import mongoose from "mongoose";
 export const orderController = {
   checkOut: async (c: Context) => {
     try {
@@ -15,7 +17,7 @@ export const orderController = {
       );
       const body = {
         user: c.get("user"),
-        total: total,
+        total: total + req.delivery_fee,
         delivery_fee: req.delivery_fee,
         products: req.products,
         status: orderStatus.pending,
@@ -58,9 +60,75 @@ export const orderController = {
       const id = c.req.param("id");
       const { isConfirmOrder } = await c.req.json();
       let status = "";
-      console.log(isConfirmOrder);
       if (isConfirmOrder) {
         status = orderStatus.completed;
+        const data = await orderModel.aggregate([
+          {
+            $match: { _id: new mongoose.Types.ObjectId(id) },
+          },
+          {
+            $unwind: "$products",
+          },
+          {
+            $addFields: {
+              "products.store": { $toObjectId: "$products.store" },
+            },
+          },
+          {
+            $lookup: {
+              from: "stores",
+              localField: "products.store",
+              foreignField: "_id",
+              as: "storeDetails",
+            },
+          },
+          {
+            $unwind: "$storeDetails",
+          },
+          {
+            $addFields: {
+              "storeDetails.merchant": {
+                $toObjectId: "$storeDetails.merchant",
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: "merchants",
+              localField: "storeDetails.merchant",
+              foreignField: "_id",
+              as: "merchantDetails",
+            },
+          },
+
+          {
+            $unwind: "$merchantDetails",
+          },
+          {
+            $project: {
+              orderId: "$_id",
+              product: "$products",
+              store: "$storeDetails",
+              merchant: "$merchantDetails._id",
+              merchantName: "$merchantDetails.name",
+              commissionRate: "$merchantDetails.commission_rate",
+              productPrice: "$products.price",
+              quantity: "$products.qty",
+            },
+          },
+        ]);
+        const commissions = data.map((item) => {
+          const saleAmount = item.productPrice * item.quantity;
+          const rate = item.commissionRate ? item.commissionRate : 0.1; // ✅ now correctly referenced
+
+          return {
+            merchant: item.merchant.toString(),
+            amount: (saleAmount * rate).toFixed(2),
+            rate: rate,
+            status: "pending",
+          };
+        });
+        await commissionModel.insertMany(commissions);
       } else {
         status = orderStatus.canceled;
       }

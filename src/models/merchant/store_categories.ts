@@ -9,6 +9,7 @@ export const storeCategory = z.object({
     data: z.any(), // Buffer
     length: z.number(),
   }),
+  isActive: z.boolean(),
 });
 export type storeCategory = z.infer<typeof storeCategory>;
 const storeCategorySchema = new Schema<storeCategory>(
@@ -26,6 +27,9 @@ const storeCategorySchema = new Schema<storeCategory>(
       mimetype: String,
       data: Buffer,
       length: Number,
+    },
+    isActive: {
+      type: Boolean,
     },
   },
   { timestamps: true },

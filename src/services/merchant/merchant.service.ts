@@ -1,40 +1,35 @@
 import type { Context } from "hono";
-import superAdminModel from "../../models/super-admin/super-admin.js";
-import { superAdmin } from "../../models/super-admin/super-admin.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { storeModel } from "../../models/admin/stores.js";
+import { Merchant, merchantModel } from "../../models/admin/merchants.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
+import { storeModel } from "../../models/admin/stores.js";
 import mongoose from "mongoose";
-
-export const superAdminController = {
-  create: async (c: Context) => {
+import { commissionModel } from "../../models/admin/commission.js";
+export const merchantController = {
+  createMerchant: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
-      const bodyData = await c.req.parseBody();
-      const email = bodyData["email"] as string;
-
-      // Check if email already exists
-      const existingUser = await superAdminModel.findOne({ email });
-      if (existingUser) {
-        return c.json({ error: "Email already exists!" }, 400);
-      }
-
-      const file = bodyData["profile"] as File;
-      const password = bodyData["password"] as string;
-      const hashPass = await bcrpyt.hash(password, salt);
+      const formData = await c.req.formData();
+      const file = formData.get("profile") as File;
+      const password = formData.get("password");
+      const hashPass = await bcrpyt.hash(password as string, salt);
       const body: any = {
-        fullname: bodyData["fullname"] as string,
-        email: bodyData["email"] as string,
+        name: formData.get("name") as string,
+        username: formData.get("username") as string,
+        email: formData.get("email") as string,
         password: hashPass,
-        role: "super-admin",
-        phone: bodyData["phone"] as string,
+        role: formData.get("role") as string,
+        phone: formData.get("phone") as string,
+        address: formData.get("address") as string,
+        commission_rate: Number(formData.get("commission_rate")),
+        isActive: true,
       };
-
       if (file && file.size > 0) {
+        // User uploaded a profile image
         const buffer = await file.arrayBuffer();
         body.profile = {
           filename: file.name,
@@ -43,6 +38,7 @@ export const superAdminController = {
           length: file.size,
         };
       } else {
+        // No file uploaded, use default image from src/images folder
         const defaultImagePath = path.join(
           process.cwd(),
           "src",
@@ -54,119 +50,33 @@ export const superAdminController = {
           body.profile = {
             filename: "default-profile.png",
             mimetype: "image/png",
-            data: defaultBuffer,
+            data: Buffer.from(defaultBuffer),
             length: defaultBuffer.length,
           };
         } catch (error) {
           console.log("Default image not found at:", defaultImagePath);
         }
       }
-      const user = new superAdminModel(body);
-      await user.save();
+      await merchantModel.create(body);
       return c.json({
-        msg: "Super Admin created successfully!",
+        msg: "Merchant created successfully!",
       });
-    } catch (e: any) {
-      return c.json({ error: e.message || e }, 500);
+    } catch (e) {
+      console.log(e);
+      return c.json({ error: e }, 500);
     }
   },
-  login: async (c: Context) => {
+  getMany: async (c: Context) => {
     try {
-      const { email, password } = await c.req.json();
-      const user = await superAdminModel.findOne({
-        email,
-        role: "super-admin",
-      });
-
-      if (!user) return c.json({ message: "Unauthenticated" }, 401);
-
-      const userBody = {
-        fullname: user?.fullname,
-        email: user?.email,
-        role: user?.role,
-      };
-
-      const compare = await bcrpyt.compare(password, user.password);
-      if (!compare) return c.json({ message: "Wrong password!" }, 401);
-      const token = getToken(user._id, store?._id);
-      const expireDate = getExpirationDate(token);
-      return c.json({
-        user: userBody,
-        token: token,
-        expireAt: expireDate,
-        message: "Login Success",
-      });
-    } catch (e: any) {
-      return c.json({ error: e.message || e }, 500);
-    }
-  },
-  getUsers: async (c: Context) => {
-    try {
-      const condition = { role: "super-admin" }; // only select super-admin
-      const users = await superAdminModel
-        .find(condition)
-        .select(["-profile", "-password"])
-        .lean();
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
-      const formattedUsers = users.map((el) => {
-        return {
-          ...el,
-          profile_url: `${baseUrl}/api/super-admins/profile/${el._id}`,
-        };
-      });
-      return c.json({
-        list: formattedUsers,
-      });
-    } catch (e: any) {
-      return c.json({ error: e.message || e }, 500);
-    }
-  },
-  getById: async (c: Context) => {
-    try {
-      const id = c.req.param("id");
-      const user: any = await superAdminModel
-        .findOne({ _id: id, role: "super-admin" })
-        .select(["-password", "-profile.data"])
-        .lean();
-
-      if (!user) return c.json({ message: "Not Found" }, 404);
-
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
-      const formattedUser = {
-        ...user,
-        profile_url: `${baseUrl}/api/super-admins/profile/${user._id}`,
-      };
-      return c.json(formattedUser);
-    } catch (e: any) {
-      return c.json({ error: e.message || e }, 500);
-    }
-  },
-  getMerchantDetail: async (c: Context) => {
-    try {
-      const id = c.req.param("id");
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
-      const data = await adminUserModel.aggregate([
+      const merchants = await merchantModel.aggregate([
         {
           $project: {
             "profile.data": 0,
-            password: 0,
           },
-        },
-        {
-          $match: { _id: new mongoose.Types.ObjectId(id) },
         },
         {
           $addFields: {
             merchantIdStr: { $toString: "$_id" },
-            profile_url: {
-              $concat: [
-                `${baseUrl}/api/admin-users/profile/`,
-                { $toString: "$_id" },
-              ],
-            },
           },
         },
         {
@@ -177,97 +87,97 @@ export const superAdminController = {
             as: "stores",
           },
         },
-        // {
-        //   $unwind: {
-        //     path: "$stores",
-        //     preserveNullAndEmptyArrays: true,
-        //   },
-        // },
+        {
+          $unwind: {
+            path: "$stores",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         {
           $project: {
             merchantIdStr: 0,
             "stores.store_img": 0,
             "stores.store_type": 0,
-            profile: 0,
           },
         },
       ]);
-      const merchant = data[0];
-      return c.json(merchant);
+      return c.json({
+        list: merchants,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
   },
-  getMerchantDetail: async (c: Context) => {
+  getProfile: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
-      const data = await adminUserModel.aggregate([
-        {
-          $project: {
-            "profile.data": 0,
-            password: 0,
-          },
-        },
-        {
-          $match: { _id: new mongoose.Types.ObjectId(id) },
-        },
-        {
-          $addFields: {
-            merchantIdStr: { $toString: "$_id" },
-            profile_url: {
-              $concat: [
-                `${baseUrl}/api/admin-users/profile/`,
-                { $toString: "$_id" },
-              ],
-            },
-          },
-        },
-        {
-          $lookup: {
-            from: "stores",
-            localField: "merchantIdStr",
-            foreignField: "merchant",
-            as: "stores",
-          },
-        },
-        // {
-        //   $unwind: {
-        //     path: "$stores",
-        //     preserveNullAndEmptyArrays: true,
-        //   },
-        // },
-        {
-          $project: {
-            merchantIdStr: 0,
-            "stores.store_img": 0,
-            "stores.store_type": 0,
-            profile: 0,
-          },
-        },
-      ]);
-      const merchant = data[0];
-      return c.json(merchant);
-    } catch (e) {
-      return c.json({ error: e }, 500);
-    }
-  },
-  getUserProfile: async (c: Context) => {
-    try {
-      const id = c.req.param("id");
-      const profile = await superAdminModel.findById(id).select("profile");
-      if (profile && profile.profile && profile.profile.data) {
-        return c.body(profile.profile.data, 200, {
-          "Content-Type": profile.profile.mimetype,
+      const img = await merchantModel.findById(id).select("profile");
+      if (img) {
+        return c.body(img!.profile!.data, 200, {
+          "Content-Type": img!.profile!.mimetype,
         });
       } else {
         return c.json({
-          msg: "Image not found",
+          msg: "Image not found!",
         });
       }
-    } catch (e: any) {
-      return c.json({ error: e.message || e }, 500);
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getMerchantDetail: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const data = await merchantModel.aggregate([
+        {
+          $project: {
+            "profile.data": 0,
+            password: 0,
+          },
+        },
+        {
+          $match: { _id: new mongoose.Types.ObjectId(id) },
+        },
+        {
+          $addFields: {
+            merchantIdStr: { $toString: "$_id" },
+            profile_url: {
+              $concat: [
+                `${baseUrl}/api/merchants/profile/`,
+                { $toString: "$_id" },
+              ],
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "stores",
+            localField: "merchantIdStr",
+            foreignField: "merchant",
+            as: "stores",
+          },
+        },
+        // {
+        //   $unwind: {
+        //     path: "$stores",
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
+        {
+          $project: {
+            merchantIdStr: 0,
+            "stores.store_img": 0,
+            "stores.store_type": 0,
+            profile: 0,
+          },
+        },
+      ]);
+      const merchant = data[0];
+      return c.json(merchant);
+    } catch (e) {
+      return c.json({ error: e }, 500);
     }
   },
   updateAccountInfo: async (c: Context) => {
@@ -301,18 +211,19 @@ export const superAdminController = {
         }).filter(([_, v]) => v !== undefined),
       );
 
-      await adminUserModel.findByIdAndUpdate(id, body, { new: true });
+      await merchantModel.findByIdAndUpdate(id, body, { new: true });
 
-      return c.json({ msg: "User updated successfully!" });
+      return c.json({ msg: "Merchant updated successfully!" });
     } catch (e) {
+      console.log(e);
       return c.json({ error: e }, e instanceof z.ZodError ? 400 : 500);
     }
   },
   updateProfile: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const bodyData = await c.req.parseBody();
-      const file = bodyData["profile"] as File;
+      const formData = await c.req.formData();
+      const file = formData.get("profile") as File;
       const body: any = {};
 
       if (file && file.size > 0) {
@@ -325,20 +236,10 @@ export const superAdminController = {
         };
       }
       if (!body.profile) {
-        return c.json({ msg: "Please input file" }, 400);
+        return c.json({ msg: "No image provided" }, 400);
       }
-
-      // Only validate profile part
-      const profileSchema = superAdmin.pick({ profile: true });
-      const validated = profileSchema.parse(body);
-
-      await superAdminModel.findOneAndUpdate(
-        { _id: id, role: "super-admin" },
-        validated,
-      );
-      return c.json({
-        msg: "Super Admin updated successfully!",
-      });
+      await merchantModel.findByIdAndUpdate(id, body, { new: true });
+      return c.json({ msg: "Profile updated successfully!" });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
@@ -346,9 +247,9 @@ export const superAdminController = {
   delete: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      await superAdminModel.findOneAndDelete({ _id: id, role: "super-admin" });
+      await merchantModel.findByIdAndDelete(id);
       return c.json({
-        msg: "Super Admin deleted successfully!",
+        msg: "Merchant deleted successfully!",
       });
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -357,9 +258,8 @@ export const superAdminController = {
   search: async (c: Context) => {
     try {
       const search = decodeURIComponent(c.req.query("q") as string);
-      const data = await superAdminModel.find({
-        fullname: { $regex: search, $options: "i" },
-        role: "super-admin",
+      const data = await merchantModel.find({
+        username: { $regex: search, $options: "i" },
       });
       if (data.length > 0) {
         return c.json({
@@ -374,106 +274,14 @@ export const superAdminController = {
       return c.json({ error: e }, 500);
     }
   },
-  // getOverallDataOfMerchant: async (c: Context) => {
-  //   try {
-  //     // 1. Total user but only role as shop-owner
-  //     const totalShopOwners = await adminUserModel.countDocuments({
-  //       role: "shop-owner",
-  //     });
-
-  //     // 2. 10 recent create user (excluding admin role as per getUsers pattern)
-  //     const recentUsers = await adminUserModel
-  //       .find({ role: { $ne: "admin" } })
-  //       .sort({ createdAt: -1 })
-  //       .limit(10)
-  //       .select("-password -profile.data")
-  //       .lean();
-
-  //     // 3. Top 10 highest income look up with order data
-  //     const topIncome = await orderModel.aggregate([
-  //       { $unwind: "$products" },
-  //       {
-  //         $group: {
-  //           _id: "$products.store",
-  //           totalIncome: { $sum: "$products.subtotal" },
-  //         },
-  //       },
-  //       { $sort: { totalIncome: -1 } },
-  //       { $limit: 10 },
-  //       {
-  //         $addFields: {
-  //           storeObjectId: {
-  //             $convert: {
-  //               input: "$_id",
-  //               to: "objectId",
-  //               onError: null,
-  //               onNull: null,
-  //             },
-  //           },
-  //         },
-  //       },
-  //       { $match: { storeObjectId: { $ne: null } } },
-  //       {
-  //         $lookup: {
-  //           from: "stores",
-  //           localField: "storeObjectId",
-  //           foreignField: "_id",
-  //           as: "storeInfo",
-  //         },
-  //       },
-  //       { $unwind: "$storeInfo" },
-  //       {
-  //         $addFields: {
-  //           userObjectId: {
-  //             $convert: {
-  //               input: "$storeInfo.user",
-  //               to: "objectId",
-  //               onError: null,
-  //               onNull: null,
-  //             },
-  //           },
-  //         },
-  //       },
-  //       { $match: { userObjectId: { $ne: null } } },
-  //       {
-  //         $lookup: {
-  //           from: "admin_users",
-  //           localField: "userObjectId",
-  //           foreignField: "_id",
-  //           as: "ownerInfo",
-  //         },
-  //       },
-  //       { $unwind: "$ownerInfo" },
-  //       {
-  //         $project: {
-  //           _id: 0,
-  //           storeId: "$_id",
-  //           totalIncome: 1,
-  //           storeName: "$storeInfo.name",
-  //           ownerName: "$ownerInfo.username",
-  //           ownerEmail: "$ownerInfo.email",
-  //         },
-  //       },
-  //     ]);
-
-  //     return c.json({
-  //       total_shop_owners: totalShopOwners,
-  //       recent_users: recentUsers,
-  //       top_income: topIncome,
-  //     });
-  //   } catch (e) {
-  //     console.error(e);
-  //     return c.json({ error: e }, 500);
-  //   }
-  // },
   getMerchantOverallStats: async (c: Context) => {
     try {
-      const totalMerchants = await adminUserModel.countDocuments();
-      const totalActiveMerchants = await adminUserModel.countDocuments({
+      const totalMerchants = await merchantModel.countDocuments();
+      const totalActiveMerchants = await merchantModel.countDocuments({
         isActive: true,
       });
 
-      const [commissionStats] = await adminUserModel.aggregate([
+      const [commissionStats] = await commissionModel.aggregate([
         {
           $group: {
             _id: null,
@@ -503,6 +311,35 @@ export const superAdminController = {
       return c.json({ error: e }, 500);
     }
   },
+
+  login: async (c: Context) => {
+    try {
+      const { email, password } = await c.req.json();
+      const user = await merchantModel.findOne({ email });
+      const store = await storeModel.findOne({
+        merchant: user?._id.toString(),
+      });
+      const userBody = {
+        username: user?.username,
+        email: user?.email,
+        role: user?.role,
+        store: store?._id,
+      };
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
+      const compare = await bcrpyt.compare(password, user.password);
+      if (!compare) return c.json({ message: "Wrong password!" }, 401);
+      const token = getToken(user._id);
+      const expireDate = getExpirationDate(token);
+      return c.json({
+        user: userBody,
+        token: token,
+        expireAt: expireDate,
+        message: "Login Success",
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
   getCommissions: async (c: Context) => {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -514,7 +351,7 @@ export const superAdminController = {
       59,
       59,
     );
-    const data = await adminUserModel.aggregate([
+    const data = await commissionModel.aggregate([
       {
         $addFields: {
           merchant: { $toObjectId: "$merchant" },
@@ -590,7 +427,7 @@ export const superAdminController = {
         59,
         59,
       );
-      await adminUserModel.updateMany(
+      await commissionModel.updateMany(
         {
           merchant: id, // filter by merchant
           status: "pending", // only pending commissions
@@ -606,12 +443,12 @@ export const superAdminController = {
     }
   },
 };
-function getToken(userId: mongoose.Types.ObjectId, storeId: any) {
+function getToken(userId: mongoose.Types.ObjectId) {
   const secret = process.env.JWT_KEY;
   if (!secret) {
     throw new Error("JWT_KEY is not defined in environment variables.");
   }
-  return jwt.sign({ user: userId, store: storeId }, secret, {
+  return jwt.sign({ user: userId }, secret, {
     expiresIn: "24h",
   });
 }

@@ -15,8 +15,6 @@ import storeDocRoute from "./merchant/store-document.route.js";
 import dashboardRoute from "./super-admin/dashboard.route.js";
 const HonoRoutes = new Hono();
 
-
-    
 HonoRoutes.route("/categories", categoryRoute);
 HonoRoutes.route("/products", productRoute);
 HonoRoutes.route("/mobile-users", mobileUserRoute);
@@ -31,4 +29,5 @@ HonoRoutes.route("/product-document", productDocRoute);
 HonoRoutes.route("/storeCate-document", storeCateDocRoute);
 HonoRoutes.route("/stores-document", storeDocRoute);
 HonoRoutes.route("/dashboard", dashboardRoute);
-export default HonoRoutes;   
+HonoRoutes.route("/merchants", merchantRoute);
+export default HonoRoutes;

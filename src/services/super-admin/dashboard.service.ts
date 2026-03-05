@@ -1,5 +1,4 @@
 import type { Context } from "hono";
-import * as z from "zod";
 import { orderModel } from "../../models/mobile/order.js";
 import mongoose from "mongoose";
 export const dashboardController = {
@@ -92,7 +91,7 @@ export const dashboardController = {
             _id: "$products.store",
             name: { $first: "$incomeData.name" },
             totalOrder: { $sum: 1 },
-            total_cost: { $sum: "$products.subtotal" },
+            total_income: { $sum: "$products.subtotal" },
           },
         },
       ]);

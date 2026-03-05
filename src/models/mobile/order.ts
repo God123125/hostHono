@@ -14,8 +14,8 @@ export const Order = z.object({
       price: z.number(),
       subtotal: z.number(),
       imageUrl: z.string(),
-      store: z.string(),
-    })
+      store: z.any(),
+    }),
   ),
 });
 export type Order = z.infer<typeof Order>;
@@ -49,7 +49,7 @@ const orderSchema = new Schema<Order>(
           required: true,
         },
         store: {
-          type: String,
+          type: mongoose.Schema.Types.ObjectId,
           ref: "stores",
           required: true,
         },
@@ -72,6 +72,6 @@ const orderSchema = new Schema<Order>(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 export const orderModel = mongoose.model<Order>("orders", orderSchema);

@@ -2,11 +2,8 @@ import mongoose, { Schema, Types } from "mongoose";
 import * as z from "zod";
 export const Store = z.object({
   name: z.string(),
-  owner_name: z.string(),
-  gender: z.string(),
-  phone: z.string(),
-  user: z.string(),
-  store_type: z.string(),
+  merchant: z.any(),
+  store_category: z.string(),
   isActive: z.boolean(),
   store_img: z
     .object({
@@ -23,18 +20,7 @@ const storeSchema = new Schema<Store>({
     type: String,
     required: true,
   },
-  owner_name: {
-    type: String,
-    required: true,
-  },
-  gender: {
-    type: String,
-    required: true,
-  },
-  phone: {
-    type: String,
-  },
-  store_type: {
+  store_category: {
     type: String,
     ref: "store_categories",
     required: true,
@@ -48,10 +34,10 @@ const storeSchema = new Schema<Store>({
     data: Buffer,
     length: Number,
   },
-  user: {
-    type: String,
-    ref: "super-admin",
+  merchant: {
+    type: mongoose.Types.ObjectId,
+    ref: "admin_users",
     required: true,
   },
 });
-export default mongoose.model<Store>("stores", storeSchema);
+export const storeModel = mongoose.model<Store>("stores", storeSchema);

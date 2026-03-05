@@ -1,8 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
-export const superAdmin = z.object({
+export const Merchant = z.object({
   name: z.string(),
-  fullname: z.string(),
+  username: z.string(),
   email: z.string(),
   phone: z.string(),
   address: z.string(),
@@ -19,15 +19,16 @@ export const superAdmin = z.object({
   role: z.string(),
   commission_rate: z.number(),
 });
-export type superAdmin = z.infer<typeof superAdmin>;
-const superAdminSchema = new Schema<superAdmin>(
+export type Merchant = z.infer<typeof Merchant>;
+const merchantSchema = new Schema<Merchant>(
   {
     name: {
       type: String,
+      required: true,
     },
-    fullname: {
+    username: {
       type: String,
-      required: false,
+      required: true,
     },
     email: {
       type: String,
@@ -35,9 +36,11 @@ const superAdminSchema = new Schema<superAdmin>(
     },
     phone: {
       type: String,
+      required: true,
     },
     address: {
       type: String,
+      required: true,
     },
     password: {
       type: String,
@@ -49,9 +52,6 @@ const superAdminSchema = new Schema<superAdmin>(
       data: Buffer,
       length: Number,
     },
-    isActive: {
-      type: Boolean,
-    },
     role: {
       type: String,
       required: true,
@@ -59,7 +59,13 @@ const superAdminSchema = new Schema<superAdmin>(
     commission_rate: {
       type: Number,
     },
+    isActive: {
+      type: Boolean,
+    },
   },
   { timestamps: true },
 );
-export default mongoose.model<superAdmin>("super-admin", superAdminSchema);
+export const merchantModel = mongoose.model<Merchant>(
+  "merchants",
+  merchantSchema,
+);
