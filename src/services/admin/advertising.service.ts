@@ -16,7 +16,7 @@ const controller = {
           length: file.size,
         },
         des: formData.get("des") as string,
-        isActive: formData.get("isActive") == "true",
+        isActive: true,
         store: formData.get("store") as string,
       };
       const validated = advertising.parse(body);

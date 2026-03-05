@@ -160,7 +160,7 @@ const controller = {
         },
         {
           $lookup: {
-            from: "admin_users",
+            from: "super_admins",
             localField: "merchantObjId",
             foreignField: "_id",
             as: "merchant",
@@ -325,6 +325,7 @@ const controller = {
       }
       if (!body.store_img) {
         return c.json({ msg: "Please input file" }, 400);
+        `1`;
       }
       await storeModel.findByIdAndUpdate(id, body);
       return c.json({

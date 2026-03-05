@@ -41,7 +41,7 @@ export const chatController = {
 
     const mobile_users = await mobileUserModel.find().lean();
     const mobileUserIds = new Set(
-      mobile_users.map((u: any) => u._id.toString())
+      mobile_users.map((u: any) => u._id.toString()),
     );
 
     // First, get all messages without populating
@@ -66,7 +66,7 @@ export const chatController = {
         });
 
         return populated;
-      })
+      }),
     );
 
     const userMap = new Map();
@@ -164,7 +164,7 @@ export const chatController = {
               // Try sending without the readyState check first
               try {
                 receiver.send(
-                  JSON.stringify({ from: data.from, message: data.message })
+                  JSON.stringify({ from: data.from, message: data.message }),
                 );
                 console.log(`✓ Message sent from ${data.from} to ${data.to}`);
               } catch (sendError) {
