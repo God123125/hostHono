@@ -8,6 +8,7 @@ import { storeModel } from "../../models/admin/stores.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
+import mongoose from "mongoose";
 
 export const adminUserController = {
   create: async (c: Context) => {
@@ -18,11 +19,15 @@ export const adminUserController = {
       const password = formData.get("password");
       const hashPass = await bcrpyt.hash(password as string, salt);
       const body: any = {
+        name: (formData.get("name") as string) || "",
         username: formData.get("username") as string,
         email: formData.get("email") as string,
         password: hashPass,
         role: formData.get("role") as string,
-        phone: formData.get("phone") as string,
+        phone: (formData.get("phone") as string) || "",
+        address: (formData.get("address") as string) || "",
+        commission_rate: Number(formData.get("commission_rate")) || 0,
+        isActive: true,
       };
 
       // Handle profile: use uploaded file or default image
@@ -55,8 +60,7 @@ export const adminUserController = {
           console.log("Default image not found at:", defaultImagePath);
         }
       }
-      const user = new adminUserModel(body);
-      await user.save();
+      await adminUserModel.create(body);
       return c.json({
         msg: "User created successfully!",
       });
@@ -68,7 +72,11 @@ export const adminUserController = {
     try {
       const { email, password } = await c.req.json();
       const user = await adminUserModel.findOne({ email });
-      const store = await storeModel.findOne({ user: user?._id?.toString() });
+      const store = await storeModel
+        .findOne({
+          merchant: user!._id.toString(),
+        })
+        .select("-store_img");
       const userBody = {
         username: user?.username,
         email: user?.email,
@@ -78,7 +86,7 @@ export const adminUserController = {
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user.password);
       if (!compare) return c.json({ message: "Wrong password!" }, 401);
-      const token = getToken();
+      const token = getToken(user._id, store?._id);
       const expireDate = getExpirationDate(token);
       return c.json({
         user: userBody,
@@ -95,7 +103,7 @@ export const adminUserController = {
       const condition = { role: { $ne: "admin" } }; // condition not select admin
       const users = await adminUserModel
         .find(condition)
-        .select(["-profile.data", "-password"])
+        .select(["-profile", "-password"])
         .lean();
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
@@ -117,7 +125,7 @@ export const adminUserController = {
       const id = c.req.param("id");
       const user: any = await adminUserModel
         .findById(id)
-        .select(["-password", "-profile.data"])
+        .select(["-password", "-profile"])
         .lean();
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
@@ -126,6 +134,61 @@ export const adminUserController = {
         profile_url: `${baseUrl}/api/admin-users/profile/${user._id}`,
       };
       return c.json(formattedUser);
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getMerchantDetail: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const data = await adminUserModel.aggregate([
+        {
+          $project: {
+            "profile.data": 0,
+            password: 0,
+          },
+        },
+        {
+          $match: { _id: new mongoose.Types.ObjectId(id) },
+        },
+        {
+          $addFields: {
+            merchantIdStr: { $toString: "$_id" },
+            profile_url: {
+              $concat: [
+                `${baseUrl}/api/admin-users/profile/`,
+                { $toString: "$_id" },
+              ],
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "stores",
+            localField: "merchantIdStr",
+            foreignField: "merchant",
+            as: "stores",
+          },
+        },
+        // {
+        //   $unwind: {
+        //     path: "$stores",
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
+        {
+          $project: {
+            merchantIdStr: 0,
+            "stores.store_img": 0,
+            "stores.store_type": 0,
+            profile: 0,
+          },
+        },
+      ]);
+      const merchant = data[0];
+      return c.json(merchant);
     } catch (e) {
       return c.json({ error: e }, 500);
     }
@@ -150,7 +213,16 @@ export const adminUserController = {
   updateAccountInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const { username, email, password, role, phone } = await c.req.json();
+      const {
+        name,
+        username,
+        email,
+        password,
+        role,
+        phone,
+        isActive,
+        address,
+      } = await c.req.json();
 
       const hashedPassword = password
         ? await bcrpyt.hash(password, await bcrpyt.genSalt(10))
@@ -158,11 +230,14 @@ export const adminUserController = {
 
       const body = Object.fromEntries(
         Object.entries({
+          name,
           username,
           email,
           password: hashedPassword,
           role,
           phone,
+          address,
+          isActive,
         }).filter(([_, v]) => v !== undefined),
       );
 
@@ -235,105 +310,244 @@ export const adminUserController = {
       return c.json({ error: e }, 500);
     }
   },
-  getOverallDataOfMerchant: async (c: Context) => {
+  // getOverallDataOfMerchant: async (c: Context) => {
+  //   try {
+  //     // 1. Total user but only role as shop-owner
+  //     const totalShopOwners = await adminUserModel.countDocuments({
+  //       role: "shop-owner",
+  //     });
+
+  //     // 2. 10 recent create user (excluding admin role as per getUsers pattern)
+  //     const recentUsers = await adminUserModel
+  //       .find({ role: { $ne: "admin" } })
+  //       .sort({ createdAt: -1 })
+  //       .limit(10)
+  //       .select("-password -profile.data")
+  //       .lean();
+
+  //     // 3. Top 10 highest income look up with order data
+  //     const topIncome = await orderModel.aggregate([
+  //       { $unwind: "$products" },
+  //       {
+  //         $group: {
+  //           _id: "$products.store",
+  //           totalIncome: { $sum: "$products.subtotal" },
+  //         },
+  //       },
+  //       { $sort: { totalIncome: -1 } },
+  //       { $limit: 10 },
+  //       {
+  //         $addFields: {
+  //           storeObjectId: {
+  //             $convert: {
+  //               input: "$_id",
+  //               to: "objectId",
+  //               onError: null,
+  //               onNull: null,
+  //             },
+  //           },
+  //         },
+  //       },
+  //       { $match: { storeObjectId: { $ne: null } } },
+  //       {
+  //         $lookup: {
+  //           from: "stores",
+  //           localField: "storeObjectId",
+  //           foreignField: "_id",
+  //           as: "storeInfo",
+  //         },
+  //       },
+  //       { $unwind: "$storeInfo" },
+  //       {
+  //         $addFields: {
+  //           userObjectId: {
+  //             $convert: {
+  //               input: "$storeInfo.user",
+  //               to: "objectId",
+  //               onError: null,
+  //               onNull: null,
+  //             },
+  //           },
+  //         },
+  //       },
+  //       { $match: { userObjectId: { $ne: null } } },
+  //       {
+  //         $lookup: {
+  //           from: "admin_users",
+  //           localField: "userObjectId",
+  //           foreignField: "_id",
+  //           as: "ownerInfo",
+  //         },
+  //       },
+  //       { $unwind: "$ownerInfo" },
+  //       {
+  //         $project: {
+  //           _id: 0,
+  //           storeId: "$_id",
+  //           totalIncome: 1,
+  //           storeName: "$storeInfo.name",
+  //           ownerName: "$ownerInfo.username",
+  //           ownerEmail: "$ownerInfo.email",
+  //         },
+  //       },
+  //     ]);
+
+  //     return c.json({
+  //       total_shop_owners: totalShopOwners,
+  //       recent_users: recentUsers,
+  //       top_income: topIncome,
+  //     });
+  //   } catch (e) {
+  //     console.error(e);
+  //     return c.json({ error: e }, 500);
+  //   }
+  // },
+  getMerchantOverallStats: async (c: Context) => {
     try {
-      // 1. Total user but only role as shop-owner
-      const totalShopOwners = await adminUserModel.countDocuments({
-        role: "shop-owner",
+      const totalMerchants = await adminUserModel.countDocuments();
+      const totalActiveMerchants = await adminUserModel.countDocuments({
+        isActive: true,
       });
 
-      // 2. 10 recent create user (excluding admin role as per getUsers pattern)
-      const recentUsers = await adminUserModel
-        .find({ role: { $ne: "admin" } })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select("-password -profile.data")
-        .lean();
-
-      // 3. Top 10 highest income look up with order data
-      const topIncome = await orderModel.aggregate([
-        { $unwind: "$products" },
+      const [commissionStats] = await adminUserModel.aggregate([
         {
           $group: {
-            _id: "$products.store",
-            totalIncome: { $sum: "$products.subtotal" },
-          },
-        },
-        { $sort: { totalIncome: -1 } },
-        { $limit: 10 },
-        {
-          $addFields: {
-            storeObjectId: {
-              $convert: {
-                input: "$_id",
-                to: "objectId",
-                onError: null,
-                onNull: null,
+            _id: null,
+            totalCommission: { $sum: "$amount" },
+            pendingCommission: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "pending"] }, "$amount", 0],
               },
             },
-          },
-        },
-        { $match: { storeObjectId: { $ne: null } } },
-        {
-          $lookup: {
-            from: "stores",
-            localField: "storeObjectId",
-            foreignField: "_id",
-            as: "storeInfo",
-          },
-        },
-        { $unwind: "$storeInfo" },
-        {
-          $addFields: {
-            userObjectId: {
-              $convert: {
-                input: "$storeInfo.user",
-                to: "objectId",
-                onError: null,
-                onNull: null,
+            paidCommission: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "paid"] }, "$amount", 0],
               },
             },
-          },
-        },
-        { $match: { userObjectId: { $ne: null } } },
-        {
-          $lookup: {
-            from: "admin_users",
-            localField: "userObjectId",
-            foreignField: "_id",
-            as: "ownerInfo",
-          },
-        },
-        { $unwind: "$ownerInfo" },
-        {
-          $project: {
-            _id: 0,
-            storeId: "$_id",
-            totalIncome: 1,
-            storeName: "$storeInfo.name",
-            ownerName: "$ownerInfo.username",
-            ownerEmail: "$ownerInfo.email",
           },
         },
       ]);
-
       return c.json({
-        total_shop_owners: totalShopOwners,
-        recent_users: recentUsers,
-        top_income: topIncome,
+        totalMerchants: totalMerchants ?? 0,
+        totalActiveMerchants: totalActiveMerchants ?? 0,
+        totalCommission: commissionStats?.totalCommission ?? 0,
+        pendingCommission: commissionStats?.pendingCommission ?? 0,
+        paidCommission: commissionStats?.paidCommission ?? 0,
       });
     } catch (e) {
       console.error(e);
       return c.json({ error: e }, 500);
     }
   },
+  getCommissions: async (c: Context) => {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDayOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
+    const data = await adminUserModel.aggregate([
+      {
+        $addFields: {
+          merchant: { $toObjectId: "$merchant" },
+        },
+      },
+      {
+        $match: {
+          createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth },
+        },
+      },
+      {
+        $lookup: {
+          from: "merchants",
+          localField: "merchant",
+          foreignField: "_id",
+          as: "merchantData",
+        },
+      },
+      {
+        $unwind: "$merchantData",
+      },
+      {
+        $group: {
+          _id: "$merchantData._id",
+          merchant_name: { $first: "$merchantData.name" },
+          merchant_email: { $first: "$merchantData.email" },
+          merchant_phone: { $first: "$merchantData.phone" },
+
+          totalPending: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, "$amount", 0] },
+          },
+          totalPaid: {
+            $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$amount", 0] },
+          },
+
+          countPending: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+          },
+          countPaid: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } },
+
+          rate: { $first: "$rate" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          merchant: {
+            _id: "$_id",
+            name: "$merchant_name",
+            email: "$merchant_email",
+            phone: "$merchant_phone",
+          },
+          totalPending: 1,
+          totalPaid: 1,
+          countPending: 1,
+          countPaid: 1,
+          rate: 1,
+        },
+      },
+    ]);
+    return c.json({ list: data });
+  },
+  updateComission: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      );
+      await adminUserModel.updateMany(
+        {
+          merchant: id, // filter by merchant
+          status: "pending", // only pending commissions
+          createdAt: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }, // this month
+        },
+        { $set: { status: "paid" } }, // mark them paid
+      );
+      return c.json({
+        msg: "Commission marked as paid",
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
 };
-function getToken() {
+function getToken(userId: mongoose.Types.ObjectId, storeId: any) {
   const secret = process.env.JWT_KEY;
   if (!secret) {
     throw new Error("JWT_KEY is not defined in environment variables.");
   }
-  return jwt.sign({}, secret, {
+  return jwt.sign({ user: userId, store: storeId }, secret, {
     expiresIn: "24h",
   });
 }

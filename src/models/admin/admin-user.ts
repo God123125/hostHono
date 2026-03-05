@@ -1,23 +1,30 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
 export const adminUser = z.object({
-  username: z.string().optional(),
+  name: z.string(),
+  username: z.string(),
   email: z.string(),
+  phone: z.string(),
+  address: z.string(),
   password: z.string(),
-  phone: z.string().optional(),
+  isActive: z.boolean(),
   profile: z
     .object({
       filename: z.string(),
       mimetype: z.string(),
-      data: z.any(), // Buffer
+      data: z.any(),
       length: z.number(),
     })
     .optional(),
   role: z.string(),
+  commission_rate: z.number(),
 });
 export type adminUser = z.infer<typeof adminUser>;
 const adminUserSchema = new Schema<adminUser>(
   {
+    name: {
+      type: String,
+    },
     username: {
       type: String,
       required: false,
@@ -26,13 +33,15 @@ const adminUserSchema = new Schema<adminUser>(
       type: String,
       required: true,
     },
+    phone: {
+      type: String,
+    },
+    address: {
+      type: String,
+    },
     password: {
       type: String,
       required: true,
-    },
-    phone: {
-      type: String,
-      required: false,
     },
     profile: {
       filename: String,
@@ -40,9 +49,15 @@ const adminUserSchema = new Schema<adminUser>(
       data: Buffer,
       length: Number,
     },
+    isActive: {
+      type: Boolean,
+    },
     role: {
       type: String,
       required: true,
+    },
+    commission_rate: {
+      type: Number,
     },
   },
   { timestamps: true },

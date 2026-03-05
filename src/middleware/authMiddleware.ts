@@ -18,6 +18,7 @@ export const verifyToken = async (c: Context, next: Next) => {
     const decoded = jwt.verify(token, secret);
     // store user in context for this request
     c.set("user", (decoded as any).user);
+    c.set("store", (decoded as any).store);
     await next();
   } catch {
     return c.json({ message: "unauthenticated" }, 401);

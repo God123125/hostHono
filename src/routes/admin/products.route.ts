@@ -4,7 +4,11 @@ import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
 // routes.use("*", verifyToken);
 routes.get("/", verifyToken, productController.getMany);
-routes.get("/grouped", productController.getProductsGroupedByCategory);
+routes.get(
+  "/grouped",
+  verifyToken,
+  productController.getProductsGroupedByCategory,
+);
 routes.get("/mobile-products", productController.getMany); // for mobile app
 routes.post("/", verifyToken, productController.create);
 routes.patch("/update-info/:id", verifyToken, productController.updateInfo);

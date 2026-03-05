@@ -68,7 +68,7 @@ const controller = {
         .find(filter)
         .populate({
           path: "merchant",
-          select: ["-profile.data", "-password"],
+          select: ["-profile", "-password"],
         })
         .populate({
           path: "store_category",
@@ -90,6 +90,7 @@ const controller = {
         total: count,
       });
     } catch (e) {
+      console.log(e);
       return c.json({ error: e }, 500);
     }
   },
@@ -159,7 +160,7 @@ const controller = {
         },
         {
           $lookup: {
-            from: "merchants",
+            from: "admin_users",
             localField: "merchantObjId",
             foreignField: "_id",
             as: "merchant",
@@ -246,7 +247,7 @@ const controller = {
             },
             merchant_profile: {
               $concat: [
-                `${baseUrl}/api/merchants/profile/`,
+                `${baseUrl}/api/admin-users/profile/`,
                 { $toString: "$merchant._id" },
               ],
             },

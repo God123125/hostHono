@@ -57,7 +57,7 @@ const controller = {
       if (category) query.category = category;
       const products = await productModel
         .find(query)
-        .select("-image.data")
+        .select("-image")
         .populate("category")
         .limit(Number(limit))
         .lean(); // use to read data not copy plain object from mongodb
@@ -210,7 +210,8 @@ const controller = {
   },
   getProductsGroupedByCategory: async (c: Context) => {
     try {
-      const { storeId, limit } = c.req.query();
+      const { limit } = c.req.query();
+      const storeId = c.get("store");
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const productLimit = limit ? Number(limit) : 4;

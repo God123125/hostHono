@@ -342,17 +342,15 @@ export const merchantController = {
   },
   getCommissions: async (c: Context) => {
     const now = new Date();
-    // const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const firstDayOfMonth = new Date("2026-02-01T17:00:00.000Z");
-    const lastDayOfMonth = new Date("2026-02-28T17:00:00.000Z");
-    // const lastDayOfMonth = new Date(
-    //   now.getFullYear(),
-    //   now.getMonth() + 1,
-    //   0,
-    //   23,
-    //   59,
-    //   59,
-    // );
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDayOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
     const data = await commissionModel.aggregate([
       {
         $addFields: {
