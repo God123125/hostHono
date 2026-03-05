@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import storeModel from "../../models/merchant/stores.js";
-import { Store } from "../../models/merchant/stores.js";
+import { storeModel } from "../../models/admin/stores.js";
+import { Store } from "../../models/admin/stores.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
@@ -160,7 +160,7 @@ const controller = {
         },
         {
           $lookup: {
-            from: "admin_users",
+            from: "super_admins",
             localField: "merchantObjId",
             foreignField: "_id",
             as: "merchant",

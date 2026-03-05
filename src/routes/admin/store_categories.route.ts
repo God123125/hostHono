@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { storeCategoryController } from "../../services/merchant/store_categories.service.js";
+import { storeCategoryController } from "../../services/admin/store_categories.service.js";
 const routes = new Hono();
 routes.get("/", storeCategoryController.getMany);
 routes.get("/search", storeCategoryController.search);

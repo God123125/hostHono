@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import superAdminModel from "../../models/super-admin/super-admin.js";
-import { superAdmin } from "../../models/super-admin/super-admin.js";
+import superAdminModel from "../../models/admin/super-admin.js";
+import { superAdmin } from "../../models/admin/super-admin.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -27,11 +27,15 @@ export const superAdminController = {
       const password = bodyData["password"] as string;
       const hashPass = await bcrpyt.hash(password, salt);
       const body: any = {
-        fullname: bodyData["fullname"] as string,
+        fullname: (bodyData["fullname"] as string) || "",
+        username: bodyData["username"] as string,
         email: bodyData["email"] as string,
         password: hashPass,
-        role: "super-admin",
-        phone: bodyData["phone"] as string,
+        role: bodyData["role"] as string,
+        phone: (bodyData["phone"] as string) || "",
+        address: (bodyData["address"] as string) || "",
+        commission_rate: Number(bodyData["commission_rate"]) || 0,
+        isActive: true,
       };
 
       if (file && file.size > 0) {
@@ -73,19 +77,19 @@ export const superAdminController = {
   login: async (c: Context) => {
     try {
       const { email, password } = await c.req.json();
-      const user = await superAdminModel.findOne({
-        email,
-        role: "super-admin",
-      });
-
-      if (!user) return c.json({ message: "Unauthenticated" }, 401);
-
+      const user = await superAdminModel.findOne({ email });
+      const store = await storeModel
+        .findOne({
+          merchant: user!._id.toString(),
+        })
+        .select("-store_img");
       const userBody = {
-        fullname: user?.fullname,
+        username: user?.username,
         email: user?.email,
         role: user?.role,
+        store: store,
       };
-
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user.password);
       if (!compare) return c.json({ message: "Wrong password!" }, 401);
       const token = getToken(user._id, store?._id);
@@ -96,8 +100,8 @@ export const superAdminController = {
         expireAt: expireDate,
         message: "Login Success",
       });
-    } catch (e: any) {
-      return c.json({ error: e.message || e }, 500);
+    } catch (e) {
+      return c.json({ error: e }, 500);
     }
   },
   getUsers: async (c: Context) => {
@@ -112,7 +116,7 @@ export const superAdminController = {
       const formattedUsers = users.map((el) => {
         return {
           ...el,
-          profile_url: `${baseUrl}/api/super-admins/profile/${el._id}`,
+          profile_url: `${baseUrl}/api/admins/profile/${el._id}`,
         };
       });
       return c.json({
@@ -136,7 +140,7 @@ export const superAdminController = {
       const baseUrl = `${url.origin}`;
       const formattedUser = {
         ...user,
-        profile_url: `${baseUrl}/api/super-admins/profile/${user._id}`,
+        profile_url: `${baseUrl}/api/admins/profile/${user._id}`,
       };
       return c.json(formattedUser);
     } catch (e: any) {
@@ -148,7 +152,7 @@ export const superAdminController = {
       const id = c.req.param("id");
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
-      const data = await adminUserModel.aggregate([
+      const data = await superAdminModel.aggregate([
         {
           $project: {
             "profile.data": 0,
@@ -162,65 +166,7 @@ export const superAdminController = {
           $addFields: {
             merchantIdStr: { $toString: "$_id" },
             profile_url: {
-              $concat: [
-                `${baseUrl}/api/admin-users/profile/`,
-                { $toString: "$_id" },
-              ],
-            },
-          },
-        },
-        {
-          $lookup: {
-            from: "stores",
-            localField: "merchantIdStr",
-            foreignField: "merchant",
-            as: "stores",
-          },
-        },
-        // {
-        //   $unwind: {
-        //     path: "$stores",
-        //     preserveNullAndEmptyArrays: true,
-        //   },
-        // },
-        {
-          $project: {
-            merchantIdStr: 0,
-            "stores.store_img": 0,
-            "stores.store_type": 0,
-            profile: 0,
-          },
-        },
-      ]);
-      const merchant = data[0];
-      return c.json(merchant);
-    } catch (e) {
-      return c.json({ error: e }, 500);
-    }
-  },
-  getMerchantDetail: async (c: Context) => {
-    try {
-      const id = c.req.param("id");
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
-      const data = await adminUserModel.aggregate([
-        {
-          $project: {
-            "profile.data": 0,
-            password: 0,
-          },
-        },
-        {
-          $match: { _id: new mongoose.Types.ObjectId(id) },
-        },
-        {
-          $addFields: {
-            merchantIdStr: { $toString: "$_id" },
-            profile_url: {
-              $concat: [
-                `${baseUrl}/api/admin-users/profile/`,
-                { $toString: "$_id" },
-              ],
+              $concat: [`${baseUrl}/api/users/profile/`, { $toString: "$_id" }],
             },
           },
         },
@@ -274,7 +220,7 @@ export const superAdminController = {
     try {
       const id = c.req.param("id");
       const {
-        name,
+        fullName,
         username,
         email,
         password,
@@ -290,7 +236,7 @@ export const superAdminController = {
 
       const body = Object.fromEntries(
         Object.entries({
-          name,
+          fullName,
           username,
           email,
           password: hashedPassword,
@@ -301,7 +247,7 @@ export const superAdminController = {
         }).filter(([_, v]) => v !== undefined),
       );
 
-      await adminUserModel.findByIdAndUpdate(id, body, { new: true });
+      await superAdminModel.findByIdAndUpdate(id, body, { new: true });
 
       return c.json({ msg: "User updated successfully!" });
     } catch (e) {
@@ -332,10 +278,7 @@ export const superAdminController = {
       const profileSchema = superAdmin.pick({ profile: true });
       const validated = profileSchema.parse(body);
 
-      await superAdminModel.findOneAndUpdate(
-        { _id: id, role: "super-admin" },
-        validated,
-      );
+      await superAdminModel.findByIdAndUpdate(id, validated);
       return c.json({
         msg: "Super Admin updated successfully!",
       });
@@ -346,7 +289,7 @@ export const superAdminController = {
   delete: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      await superAdminModel.findOneAndDelete({ _id: id, role: "super-admin" });
+      await superAdminModel.findByIdAndDelete(id);
       return c.json({
         msg: "Super Admin deleted successfully!",
       });
@@ -359,7 +302,6 @@ export const superAdminController = {
       const search = decodeURIComponent(c.req.query("q") as string);
       const data = await superAdminModel.find({
         fullname: { $regex: search, $options: "i" },
-        role: "super-admin",
       });
       if (data.length > 0) {
         return c.json({
@@ -468,12 +410,12 @@ export const superAdminController = {
   // },
   getMerchantOverallStats: async (c: Context) => {
     try {
-      const totalMerchants = await adminUserModel.countDocuments();
-      const totalActiveMerchants = await adminUserModel.countDocuments({
+      const totalMerchants = await superAdminModel.countDocuments();
+      const totalActiveMerchants = await superAdminModel.countDocuments({
         isActive: true,
       });
 
-      const [commissionStats] = await adminUserModel.aggregate([
+      const [commissionStats] = await superAdminModel.aggregate([
         {
           $group: {
             _id: null,
@@ -514,7 +456,7 @@ export const superAdminController = {
       59,
       59,
     );
-    const data = await adminUserModel.aggregate([
+    const data = await superAdminModel.aggregate([
       {
         $addFields: {
           merchant: { $toObjectId: "$merchant" },
@@ -590,7 +532,7 @@ export const superAdminController = {
         59,
         59,
       );
-      await adminUserModel.updateMany(
+      await superAdminModel.updateMany(
         {
           merchant: id, // filter by merchant
           status: "pending", // only pending commissions

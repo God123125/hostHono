@@ -1,8 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
 export const superAdmin = z.object({
-  name: z.string(),
-  fullname: z.string(),
+  fullName: z.string(),
+  username: z.string(),
   email: z.string(),
   phone: z.string(),
   address: z.string(),
@@ -22,10 +22,10 @@ export const superAdmin = z.object({
 export type superAdmin = z.infer<typeof superAdmin>;
 const superAdminSchema = new Schema<superAdmin>(
   {
-    name: {
+    fullName: {
       type: String,
     },
-    fullname: {
+    username: {
       type: String,
       required: false,
     },
@@ -62,4 +62,4 @@ const superAdminSchema = new Schema<superAdmin>(
   },
   { timestamps: true },
 );
-export default mongoose.model<superAdmin>("super-admin", superAdminSchema);
+export default mongoose.model<superAdmin>("super_admins", superAdminSchema);

@@ -1,6 +1,5 @@
 import { Hono } from "hono";
-import storeController from "../../services/merchant/stores.service.js";
-import store from "../../models/merchant/stores.js";
+import storeController from "../../services/admin/stores.service.js";
 const routes = new Hono();
 routes.get("/", storeController.getMany);
 routes.get("/search", storeController.search);

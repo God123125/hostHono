@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import categoryModel from "../../models/merchant/category.js";
-import { Category } from "../../models/merchant/category.js";
+import categoryModel from "../../models/admin/category.js";
+import { Category } from "../../models/admin/category.js";
 import * as z from "zod";
 const categoryController = {
   create: async (c: Context) => {

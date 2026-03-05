@@ -4,7 +4,7 @@ import { Order } from "../../models/mobile/order.js";
 import { cartModel } from "../../models/mobile/cart.js";
 import { orderStatus } from "../../enum/order-status.enum.js";
 import * as z from "zod";
-import { Commision, commissionModel } from "../../models/admin/commission.js";
+import { commissionModel } from "../../models/admin/commission.js";
 import mongoose from "mongoose";
 export const orderController = {
   checkOut: async (c: Context) => {
@@ -94,7 +94,7 @@ export const orderController = {
           },
           {
             $lookup: {
-              from: "merchants",
+              from: "super_admins",
               localField: "storeDetails.merchant",
               foreignField: "_id",
               as: "merchantDetails",

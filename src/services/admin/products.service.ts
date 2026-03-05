@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { Product } from "../../models/merchant/products.js";
-import productModel from "../../models/merchant/products.js";
+import { Product } from "../../models/admin/products.js";
+import productModel from "../../models/admin/products.js";
 import * as z from "zod";
 import mongoose from "mongoose";
 const controller = {

@@ -1,15 +1,13 @@
-import * as z from "zod";
-import storeCateDocModel, {
-  storeCategory,
-} from "../../models/merchant/store-categories-document.js";
 import type { Context } from "hono";
-export const storeCateDocController = {
+import storeDocModel, { storeDoc } from "../../models/admin/stores-document.js";
+import * as z from "zod";
+export const storeDocController = {
   create: async (c: Context) => {
     try {
       const formData = await c.req.formData();
-      const storeCateId = c.req.param("cateId");
-      const existingImage = await storeCateDocModel.findOne({
-        storeCategory_Id: storeCateId,
+      const storeId = c.req.param("id");
+      const existingImage = await storeDocModel.findOne({
+        store_id: storeId,
       });
       if (existingImage) {
         return c.json({
@@ -18,8 +16,8 @@ export const storeCateDocController = {
       } else {
         const file = formData.get("image") as File;
         const buffer = await file.arrayBuffer();
-        const storeCate_doc = {
-          storeCategory_Id: storeCateId,
+        const store_doc = {
+          store_id: storeId,
           image: {
             filename: file.name,
             mimetype: file.type,
@@ -27,8 +25,8 @@ export const storeCateDocController = {
             length: file.size,
           },
         };
-        const validated = storeCategory.parse(storeCate_doc);
-        await storeCateDocModel.create(validated);
+        const validated = storeDoc.parse(store_doc);
+        await storeDocModel.create(validated);
         return c.json({
           msg: "File uploaded successfully!",
         });
@@ -40,11 +38,11 @@ export const storeCateDocController = {
       return c.json({ error: e }, 500);
     }
   },
-  getByStoreCateId: async (c: Context) => {
+  getByStoreId: async (c: Context) => {
     try {
-      const storeCateId = c.req.param("cateId");
-      const img = await storeCateDocModel
-        .findOne({ storeCategory_Id: storeCateId })
+      const storeId = c.req.param("id");
+      const img = await storeDocModel
+        .findOne({ store_id: storeId })
         .select("image");
       if (img) {
         return c.body(img!.image.data, 200, {
@@ -61,10 +59,8 @@ export const storeCateDocController = {
   },
   delete: async (c: Context) => {
     try {
-      const storeCateId = c.req.param("cateId");
-      const img = await storeCateDocModel.findOne({
-        storeCategory_Id: storeCateId,
-      });
+      const storeId = c.req.param("id");
+      const img = await storeDocModel.findOne({ store_id: storeId });
       if (img) {
         await img.deleteOne();
         return c.json({
@@ -77,11 +73,11 @@ export const storeCateDocController = {
   },
   update: async (c: Context) => {
     try {
-      const storeCateId = c.req.param("cateId");
+      const storeId = c.req.param("id");
       const formData = await c.req.formData();
       const file = formData.get("image") as File;
       const buffer = await file.arrayBuffer();
-      const storeCate_doc = {
+      const store_doc = {
         image: {
           filename: file.name,
           mimetype: file.type,
@@ -89,11 +85,11 @@ export const storeCateDocController = {
           length: file.size,
         },
       };
-      const foundImage = await storeCateDocModel.findOne({
-        storeCategory_Id: storeCateId,
+      const foundImage = await storeDocModel.findOne({
+        store_id: storeId,
       });
       if (foundImage) {
-        await foundImage.updateOne(storeCate_doc);
+        await foundImage.updateOne(store_doc);
         return c.json({
           msg: "Update successfully!",
         });

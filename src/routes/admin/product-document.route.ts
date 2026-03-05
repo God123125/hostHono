@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { productDocController } from "../../services/merchant/products-document.service.js";
+import { productDocController } from "../../services/admin/products-document.service.js";
 const route = new Hono();
 route.post("/:proId", productDocController.create);
 route.get("/:proId", productDocController.getByProductId);

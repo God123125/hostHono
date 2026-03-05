@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { superAdminController } from "../../services/super-admin/super-admin.service.js";
+import { superAdminController } from "../../services/admin/super-admin.service.js";
 const routes = new Hono();
 routes.get("/", superAdminController.getUsers);
 routes.get("/search", superAdminController.search);
