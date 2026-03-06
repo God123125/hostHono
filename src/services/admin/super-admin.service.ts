@@ -81,8 +81,6 @@ export const superAdminController = {
       const { email, password } = await c.req.json();
       const user = await superAdminModel.findOne({ email });
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
       const store = await storeModel
         .findOne({
           merchant: user._id.toString(),
