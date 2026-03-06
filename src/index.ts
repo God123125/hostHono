@@ -4,7 +4,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import testRoutes from "./routes/test.route.js";
 import { logger } from "hono/logger";
-import "./db/db.js";
+import { connectDatabase } from "./db/db.js";
 import { cors } from "hono/cors";
 import honoRoutes from "./routes/routers.js";
 import { createNodeWebSocket } from "@hono/node-ws";
@@ -35,13 +35,23 @@ app.get("/", (c) => {
 app.route("/test", testRoutes);
 app.route("/api", honoRoutes);
 app.route("/api/chat", chatRoute(upgradeWebSocket));
-const server = serve(
-  {
-    fetch: app.fetch,
-    port: PORT as number,
-  },
-  (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
-  },
-);
-injectWebSocket(server);
+async function start() {
+  try {
+    await connectDatabase();
+  } catch (e) {
+    console.error("Failed to connect to database. Server will still start, but DB operations will fail.", e);
+  }
+
+  const server = serve(
+    {
+      fetch: app.fetch,
+      port: PORT as number,
+    },
+    (info) => {
+      console.log(`Server is running on http://localhost:${info.port}`);
+    },
+  );
+  injectWebSocket(server);
+}
+
+start().catch((e) => console.error("Startup error:", e));

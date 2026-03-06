@@ -10,7 +10,6 @@ routes.post("/login", superAdminController.login);
 routes.get("/profile/:id", superAdminController.getUserProfile);
 routes.patch("update-info/:id", superAdminController.updateAccountInfo);
 routes.patch("update-profile/:id", superAdminController.updateProfile);
-routes.patch("/update-commissions/:id", superAdminController.updateComission);
 routes.delete("/:id", superAdminController.delete);
 routes.get("/:id", superAdminController.getById);
 export default routes;

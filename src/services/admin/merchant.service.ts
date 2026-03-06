@@ -13,32 +13,56 @@ export const merchantController = {
   createMerchant: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
-      const formData = await c.req.formData();
-      const file = formData.get("profile") as File;
-      const password = formData.get("password");
+      // Expect JSON body. Optional `profile` may be a base64 string or an object { filename, mimetype, data }
+      const bodyData: any = await c.req.json();
+      const password = bodyData.password;
       const hashPass = await bcrpyt.hash(password as string, salt);
       const body: any = {
-        name: formData.get("name") as string,
-        username: formData.get("username") as string,
-        email: formData.get("email") as string,
+        name: bodyData.name as string,
+        username: bodyData.username as string,
+        email: bodyData.email as string,
         password: hashPass,
-        role: formData.get("role") as string,
-        phone: formData.get("phone") as string,
-        address: formData.get("address") as string,
-        commission_rate: Number(formData.get("commission_rate")),
-        isActive: true,
+        role: bodyData.role as string,
+        phone: bodyData.phone as string,
+        address: bodyData.address as string,
+        commission_rate: Number(bodyData.commission_rate) || 0,
+        isActive: bodyData.isActive !== undefined ? Boolean(bodyData.isActive) : true,
       };
-      if (file && file.size > 0) {
-        // User uploaded a profile image
-        const buffer = await file.arrayBuffer();
-        body.profile = {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        };
-      } else {
-        // No file uploaded, use default image from src/images folder
+
+      // Handle optional profile in JSON (base64 or object)
+      if (bodyData.profile) {
+        try {
+          let buffer: Buffer | null = null;
+          let filename = bodyData.profile_filename || "profile.png";
+          let mimetype = bodyData.profile_mimetype || "image/png";
+
+          if (typeof bodyData.profile === "string") {
+            // plain base64 string or data URL
+            const b64 = (bodyData.profile as string).replace(/^data:.*;base64,/, "");
+            buffer = Buffer.from(b64, "base64");
+          } else if (typeof bodyData.profile === "object" && bodyData.profile.data) {
+            const p = bodyData.profile as any;
+            const b64 = (p.data as string).replace(/^data:.*;base64,/, "");
+            buffer = Buffer.from(b64, "base64");
+            filename = p.filename || filename;
+            mimetype = p.mimetype || mimetype;
+          }
+
+          if (buffer) {
+            body.profile = {
+              filename,
+              mimetype,
+              data: buffer,
+              length: buffer.length,
+            };
+          }
+        } catch (err) {
+          console.log("Failed to parse profile from JSON:", err);
+        }
+      }
+
+      // If no profile provided or parsing failed, use default image
+      if (!body.profile) {
         const defaultImagePath = path.join(
           process.cwd(),
           "src",
@@ -57,10 +81,9 @@ export const merchantController = {
           console.log("Default image not found at:", defaultImagePath);
         }
       }
+
       await merchantModel.create(body);
-      return c.json({
-        msg: "Merchant created successfully!",
-      });
+      return c.json({ msg: "Merchant created successfully!" });
     } catch (e) {
       console.log(e);
       return c.json({ error: e }, 500);
@@ -316,16 +339,23 @@ export const merchantController = {
     try {
       const { email, password } = await c.req.json();
       const user = await merchantModel.findOne({ email });
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const store = await storeModel.findOne({
-        merchant: user?._id.toString(),
+        merchant: user._id.toString(),
       });
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+
       const userBody = {
-        username: user?.username,
-        email: user?.email,
-        role: user?.role,
+        fullname: (user as any).name || user.username || "",
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        profile_url: user.profile
+          ? `${baseUrl}/api/merchants/profile/${user._id}`
+          : null,
         store: store?._id,
       };
-      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user.password);
       if (!compare) return c.json({ message: "Wrong password!" }, 401);
       const token = getToken(user._id);
