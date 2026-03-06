@@ -4,7 +4,6 @@ import productModel from "../../models/admin/products.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
-import mongoose from "mongoose";
 const controller = {
   create: async (c: Context) => {
     try {
@@ -12,7 +11,7 @@ const controller = {
       const file = formData.get("image") as File;
       const price = Number(formData.get("price"));
       const discount = Number(formData.get("discount"));
-      const totalPrice = price - (price * discount) / 100;
+      const price_after_discount = price - (price * discount) / 100;
       const productData: any = {
         name: formData.get("name") as string,
         price: price,
@@ -22,7 +21,7 @@ const controller = {
         isActive: formData.get("isActive") == "true" ? true : false,
         discount: Number(formData.get("discount")),
         store: formData.get("store") as string,
-        totalPrice: totalPrice,
+        price_after_discount: price_after_discount,
         createdBy: c.get("user"),
       };
       if (file && file.size > 0) {
@@ -43,7 +42,7 @@ const controller = {
         );
         try {
           const defaultBuffer = await readFile(defaultImagePath);
-          productData.store_img = {
+          productData.image = {
             filename: "default_store_category.jpg",
             mimetype: "image/jpg",
             data: defaultBuffer,
@@ -124,7 +123,7 @@ const controller = {
       const id = c.req.param("id");
       const product = await productModel
         .findById(id)
-        .select("-image.data")
+        .select("-image")
         .populate("category");
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
@@ -146,7 +145,7 @@ const controller = {
       const body = await c.req.json();
       const price = Number(body.price);
       const discount = Number(body.discount);
-      const totalPrice = price - (price * discount) / 100;
+      const price_after_discount = price - (price * discount) / 100;
       const productData = {
         name: body.name,
         price: price,
@@ -156,7 +155,7 @@ const controller = {
         isActive: body.isActive,
         discount: Number(body.discount),
         store: body.store,
-        totalPrice: totalPrice,
+        price_after_discount: price_after_discount,
         createdBy: c.get("user"),
       };
       const updated = await productModel
@@ -244,7 +243,7 @@ const controller = {
           ? [
               {
                 $match: {
-                  store: new mongoose.Types.ObjectId(storeId),
+                  store: storeId,
                 },
               },
             ]

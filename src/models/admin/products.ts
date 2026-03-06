@@ -8,7 +8,7 @@ export const Product = z.object({
   qty: z.number().optional(),
   isActive: z.boolean(),
   discount: z.number(),
-  totalPrice: z.number(),
+  price_after_discount: z.number(),
   store: z.string(),
   image: z
     .object({
@@ -51,7 +51,7 @@ const productSchema = new Schema<Product>(
       type: Number,
       required: false,
     },
-    totalPrice: {
+    price_after_discount: {
       type: Number,
     },
     store: {
