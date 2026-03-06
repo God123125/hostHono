@@ -4,6 +4,7 @@ import productModel from "../../models/admin/products.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
+import mongoose, { Types } from "mongoose";
 const controller = {
   create: async (c: Context) => {
     try {
@@ -124,7 +125,8 @@ const controller = {
       const product = await productModel
         .findById(id)
         .select("-image")
-        .populate("category");
+        .populate("category")
+        .lean();
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const formattedData = {
@@ -211,21 +213,25 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
+
   search: async (c: Context) => {
     try {
-      const search = decodeURIComponent(c.req.query("q") as string);
-      const data = await productModel.find({
-        name: { $regex: search, $options: "i" },
-      });
-      if (data.length > 0) {
-        return c.json({
-          list: data,
-        });
-      } else {
-        return c.json({
-          msg: "No data found!",
-        });
+      const search = c.req.query("q") || "";
+      const storeId = c.req.query("storeId");
+
+      const query: any = {
+        name: { $regex: search.trim().toString(), $options: "i" },
+      };
+
+      if (storeId) {
+        query.store = new Types.ObjectId(storeId);
       }
+
+      const data = await productModel.find(query);
+
+      return c.json({
+        list: data,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
