@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import superAdminModel from "../../models/admin/super-admin.js";
-import { superAdmin } from "../../models/admin/super-admin.js";
+import superAdminModel from "../../models/admin/users.js";
+import { users } from "../../models/admin/users.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -9,6 +9,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
 import mongoose from "mongoose";
+import { profile } from "console";
 
 export const superAdminController = {
   create: async (c: Context) => {
@@ -78,18 +79,25 @@ export const superAdminController = {
     try {
       const { email, password } = await c.req.json();
       const user = await superAdminModel.findOne({ email });
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const store = await storeModel
         .findOne({
-          merchant: user!._id.toString(),
+          merchant: user._id.toString(),
         })
         .select("-store_img");
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+
       const userBody = {
-        username: user?.username,
-        email: user?.email,
-        role: user?.role,
+        fullname: (user as any).fullName || user.username || "",
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        profile_url: user.profile
+          ? `${baseUrl}/api/admins/profile/${user._id}`
+          : null,
         store: store,
       };
-      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user.password);
       if (!compare) return c.json({ message: "Wrong password!" }, 401);
       const token = getToken(user._id, store?._id);
@@ -129,6 +137,9 @@ export const superAdminController = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return c.json({ message: "Invalid id" }, 400);
+      }
       const user: any = await superAdminModel
         .findOne({ _id: id, role: "super-admin" })
         .select(["-password", "-profile.data"])
@@ -152,6 +163,9 @@ export const superAdminController = {
       const id = c.req.param("id");
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return c.json({ message: "Invalid id" }, 400);
+      }
       const data = await superAdminModel.aggregate([
         {
           $project: {
@@ -202,6 +216,9 @@ export const superAdminController = {
   getUserProfile: async (c: Context) => {
     try {
       const id = c.req.param("id");
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return c.json({ message: "Invalid id" }, 400);
+      }
       const profile = await superAdminModel.findById(id).select("profile");
       if (profile && profile.profile && profile.profile.data) {
         return c.body(profile.profile.data, 200, {
@@ -275,7 +292,7 @@ export const superAdminController = {
       }
 
       // Only validate profile part
-      const profileSchema = superAdmin.pick({ profile: true });
+      const profileSchema = users.pick({ profile: true });
       const validated = profileSchema.parse(body);
 
       await superAdminModel.findByIdAndUpdate(id, validated);

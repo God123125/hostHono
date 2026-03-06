@@ -124,19 +124,32 @@ export const mobileUserController = {
     try {
       const { email, password } = await c.req.json();
       const user = await mobileUserModel.findOne({ email });
-      const userBody = {
-        name: user?.name,
-        email: user?.email,
-      };
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user!.password);
       if (!compare) return c.json({ message: "Wrong Password" }, 401);
-      const token = getToken(user!._id);
+      const token = getToken(user._id);
       const expireAt = getExpirationDate(token);
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+
+      const userResponse: any = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt,
+        profile: user.profile
+          ? `${baseUrl}/api/mobile-users/profile/${user._id}`
+          : null,
+      };
+
       return c.json({
-        user: userBody,
-        token: token,
-        expireAt: expireAt,
+        user: userResponse,
+        token,
+        expireAt,
         message: "Login Success",
       });
     } catch (e) {
