@@ -71,12 +71,12 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
-      const { storeId, limit, category } = c.req.query();
+      const { limit, category } = c.req.query();
       const query: any = {};
       const user = await c.get("user");
       query.createdBy = user;
-      if (storeId) query.store = storeId;
-      if (category) query.category = category;
+      query.store = c.get("store").toString();
+      if (category) query.category = category.toString();
       const products = await productModel
         .find(query)
         .select("-image")
@@ -85,7 +85,6 @@ const controller = {
         .lean(); // use to read data not copy plain object from mongodb
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`; //origin yor tah url derm ot yor query te
-
       const productWithImage = products.map((el) => ({
         ...el,
         image_url: `${baseUrl}/api/products/img/${el._id}`,
@@ -217,20 +216,24 @@ const controller = {
   search: async (c: Context) => {
     try {
       const search = c.req.query("q") || "";
-      const storeId = c.req.query("storeId");
-
+      const storeId = c.get("store");
+      const category_id = c.req.query("category") || "";
       const query: any = {
         name: { $regex: search.trim().toString(), $options: "i" },
+        store: storeId.toString(),
+        category: category_id.toString(),
       };
-
-      if (storeId) {
-        query.store = new Types.ObjectId(storeId);
-      }
-
-      const data = await productModel.find(query);
-
+      const data = await productModel.find(query).lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedData = data.map((el) => {
+        return {
+          ...el,
+          image_url: `${baseUrl}/api/products/img/${el._id}`,
+        };
+      });
       return c.json({
-        list: data,
+        list: formattedData,
       });
     } catch (e) {
       return c.json({ error: e }, 500);

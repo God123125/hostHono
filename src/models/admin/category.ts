@@ -2,8 +2,9 @@ import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
 export const Category = z.object({
   name: z.string(),
-  desc: z.string(),
+  description: z.string(),
   isActive: z.boolean(),
+  store_id: z.any(),
 });
 export type Category = z.infer<typeof Category>;
 const categorySchema = new Schema<Category>(
@@ -12,11 +13,14 @@ const categorySchema = new Schema<Category>(
       type: String,
       required: true,
     },
-    desc: {
+    description: {
       type: String,
     },
     isActive: {
       type: Boolean,
+    },
+    store_id: {
+      type: mongoose.Types.ObjectId,
     },
   },
   { timestamps: true },
