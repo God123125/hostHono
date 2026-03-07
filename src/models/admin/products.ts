@@ -8,14 +8,16 @@ export const Product = z.object({
   qty: z.number().optional(),
   isActive: z.boolean(),
   discount: z.number(),
-  totalPrice: z.number(),
+  price_after_discount: z.number(),
   store: z.string(),
-  image: z.object({
-    filename: z.string(),
-    mimetype: z.string(),
-    data: z.any(), // Buffer
-    length: z.number(),
-  }),
+  image: z
+    .object({
+      filename: z.string(),
+      mimetype: z.string(),
+      data: z.any(), // Buffer
+      length: z.number(),
+    })
+    .optional(),
   image_url: z.string().optional(),
   createdBy: z.string(),
 });
@@ -49,7 +51,7 @@ const productSchema = new Schema<Product>(
       type: Number,
       required: false,
     },
-    totalPrice: {
+    price_after_discount: {
       type: Number,
     },
     store: {

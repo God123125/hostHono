@@ -247,7 +247,7 @@ const controller = {
             },
             merchant_profile: {
               $concat: [
-                `${baseUrl}/api/admin-users/profile/`,
+                `${baseUrl}/api/admins/profile/`,
                 { $toString: "$merchant._id" },
               ],
             },
@@ -278,7 +278,7 @@ const controller = {
       const id = c.req.param("id");
       const store = await storeModel
         .findById(id)
-        .select("-image.data")
+        .select("-store_img")
         .populate("merchant")
         .lean();
       const url = new URL(c.req.url);

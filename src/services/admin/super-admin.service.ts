@@ -10,6 +10,7 @@ import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
 import mongoose from "mongoose";
 import { profile } from "console";
+import { UserRole } from "../../enum/user-role.enum.js";
 
 export const superAdminController = {
   create: async (c: Context) => {
@@ -114,7 +115,7 @@ export const superAdminController = {
   },
   getUsers: async (c: Context) => {
     try {
-      const condition = { role: "super-admin" }; // only select super-admin
+      const condition = { role: { $ne: UserRole.SuperAdmin.toString() } }; // only select super-admin
       const users = await superAdminModel
         .find(condition)
         .select(["-profile", "-password"])
@@ -141,7 +142,7 @@ export const superAdminController = {
         return c.json({ message: "Invalid id" }, 400);
       }
       const user: any = await superAdminModel
-        .findOne({ _id: id, role: "super-admin" })
+        .findById(id)
         .select(["-password", "-profile.data"])
         .lean();
 
