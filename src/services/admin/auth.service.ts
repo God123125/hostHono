@@ -49,8 +49,8 @@ export const authController = {
       // optional: include store id for merchants
       let store = null;
       if (userRole === "merchant") {
-        const s = await storeModel.findOne({ merchant: user._id.toString() }).select("_id");
-        store = s?._id ?? null;
+        const s = await storeModel.findOne({ merchant: user._id });
+        store = s?._id.toString() ?? null;
       }
 
       const tokenPayload: any = { user: user._id.toString(), role: userRole };
@@ -103,15 +103,21 @@ export const authController = {
       const secret = process.env.JWT_KEY;
       if (!secret) throw new Error("JWT_KEY is not defined");
       const decoded = jwt.verify(token, secret) as any;
-      if (!decoded || !decoded.user) return c.json({ error: "Invalid token" }, 401);
+      if (!decoded || !decoded.user)
+        return c.json({ error: "Invalid token" }, 401);
 
       const id = decoded.user as string;
-      if (!mongoose.Types.ObjectId.isValid(id)) return c.json({ error: "Invalid id" }, 400);
+      if (!mongoose.Types.ObjectId.isValid(id))
+        return c.json({ error: "Invalid id" }, 400);
 
       // try super-admin first then merchant
-      const sa = await superAdminModel.findById(id).select("-password -profile.data");
+      const sa = await superAdminModel
+        .findById(id)
+        .select("-password -profile.data");
       if (sa) return c.json({ user: sa });
-      const m = await merchantModel.findById(id).select("-password -profile.data");
+      const m = await merchantModel
+        .findById(id)
+        .select("-password -profile.data");
       if (m) return c.json({ user: m });
       return c.json({ message: "Not found" }, 404);
     } catch (e: any) {

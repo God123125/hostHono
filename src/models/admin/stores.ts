@@ -36,7 +36,7 @@ const storeSchema = new Schema<Store>({
   },
   merchant: {
     type: mongoose.Types.ObjectId,
-    ref: "super_admins",
+    ref: "merchants",
     required: true,
   },
 });
