@@ -1,1 +1,10 @@
-export { default } from "../admin/advertising.route.js";
+import { Hono } from "hono";
+import advertisingController from "../../services/users/advertising.service.js";
+const routes = new Hono();
+routes.get("/", advertisingController.getMany);
+routes.post("/", advertisingController.create);
+routes.get("/img/:id", advertisingController.getImage);
+routes.patch("/:id", advertisingController.update);
+routes.delete("/:id", advertisingController.delete);
+routes.get("/:id", advertisingController.getById);
+export default routes;

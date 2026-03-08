@@ -1,22 +1,32 @@
 import type { Context } from "hono";
-import superAdminModel from "../../models/admin/users.js";
-import { users } from "../../models/admin/users.js";
+import superAdminModel from "../../models/users/users.js";
+import { users } from "../../models/users/users.js";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { storeModel } from "../../models/admin/stores.js";
+import { storeModel } from "../../models/users/stores.js";
+
 import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
 import mongoose from "mongoose";
-import { profile } from "console";
-import { UserRole } from "../../enum/user-role.enum.js";
+import { uploadToCloudinary, configureCloudinary } from "../../utils/cloudinary.js";
+
+// Initialize Cloudinary
+configureCloudinary();
 
 export const superAdminController = {
   create: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
-      const bodyData = await c.req.parseBody();
+      const contentType = (c.req.header("content-type") || "").toLowerCase();
+      let bodyData: any;
+      if (contentType.includes("application/json")) {
+        bodyData = await c.req.json();
+      } else {
+        bodyData = await c.req.parseBody();
+      }
+
       const email = bodyData["email"] as string;
 
       // Check if email already exists
@@ -25,8 +35,14 @@ export const superAdminController = {
         return c.json({ error: "Email already exists!" }, 400);
       }
 
-      const file = bodyData["profile"] as File;
+      const file = bodyData["profile"] as any;
       const password = bodyData["password"] as string;
+      if (!password || typeof password !== "string") {
+        return c.json({ error: "Password is required" }, 400);
+      }
+      if (password.length < 8) {
+        return c.json({ error: "Password must be at least 8 characters" }, 400);
+      }
       const hashPass = await bcrpyt.hash(password, salt);
       const body: any = {
         fullname: (bodyData["fullname"] as string) || "",
@@ -40,14 +56,14 @@ export const superAdminController = {
         isActive: true,
       };
 
-      if (file && file.size > 0) {
-        const buffer = await file.arrayBuffer();
-        body.profile = {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        };
+      // If profile is an uploaded file (multipart), save to Cloudinary.
+      if (file && typeof file === "object" && typeof file.size === "number" && file.size > 0) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const result = await uploadToCloudinary(buffer, "profile_images");
+        body.profile_url = result.secure_url;
+      } else if (file && typeof file === "string") {
+        // store external image URL
+        body.profile_url = file;
       } else {
         const defaultImagePath = path.join(
           process.cwd(),
@@ -57,14 +73,10 @@ export const superAdminController = {
         );
         try {
           const defaultBuffer = await readFile(defaultImagePath);
-          body.profile = {
-            filename: "default-profile.png",
-            mimetype: "image/png",
-            data: defaultBuffer,
-            length: defaultBuffer.length,
-          };
+          const result = await uploadToCloudinary(defaultBuffer, "profile_images");
+          body.profile_url = result.secure_url;
         } catch (error) {
-          console.log("Default image not found at:", defaultImagePath);
+          console.log("Default image not found or upload failed at:", defaultImagePath);
         }
       }
       const user = new superAdminModel(body);
@@ -94,9 +106,11 @@ export const superAdminController = {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        profile_url: user.profile
-          ? `${baseUrl}/api/admins/profile/${user._id}`
-          : null,
+        profile_url: (user as any).profile_url
+          ? (user as any).profile_url
+          : user.profile
+            ? `${baseUrl}/api/admins/profile/${user._id}`
+            : null,
         store: store,
       };
       const compare = await bcrpyt.compare(password, user.password);
@@ -115,7 +129,7 @@ export const superAdminController = {
   },
   getUsers: async (c: Context) => {
     try {
-      const condition = { role: { $ne: UserRole.SuperAdmin.toString() } }; // only select super-admin
+      const condition = { role: "super-admin" }; // only select super-admin
       const users = await superAdminModel
         .find(condition)
         .select(["-profile", "-password"])
@@ -125,7 +139,9 @@ export const superAdminController = {
       const formattedUsers = users.map((el) => {
         return {
           ...el,
-          profile_url: `${baseUrl}/api/admins/profile/${el._id}`,
+          profile_url: el.profile 
+              ? `${baseUrl}/api/admins/profile/${el._id}`
+              : null,
         };
       });
       return c.json({
@@ -142,7 +158,7 @@ export const superAdminController = {
         return c.json({ message: "Invalid id" }, 400);
       }
       const user: any = await superAdminModel
-        .findById(id)
+        .findOne({ _id: id, role: "super-admin" })
         .select(["-password", "-profile.data"])
         .lean();
 
@@ -152,7 +168,11 @@ export const superAdminController = {
       const baseUrl = `${url.origin}`;
       const formattedUser = {
         ...user,
-        profile_url: `${baseUrl}/api/admins/profile/${user._id}`,
+        profile_url: user.profile_url
+          ? user.profile_url
+          : user.profile
+            ? `${baseUrl}/api/admins/profile/${user._id}`
+            : null,
       };
       return c.json(formattedUser);
     } catch (e: any) {
@@ -220,16 +240,17 @@ export const superAdminController = {
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return c.json({ message: "Invalid id" }, 400);
       }
-      const profile = await superAdminModel.findById(id).select("profile");
-      if (profile && profile.profile && profile.profile.data) {
-        return c.body(profile.profile.data, 200, {
-          "Content-Type": profile.profile.mimetype,
-        });
-      } else {
-        return c.json({
-          msg: "Image not found",
+      const doc: any = await superAdminModel.findById(id).select("profile profile_url").lean();
+      if (!doc) return c.json({ msg: "Image not found" }, 404);
+      if (doc.profile && doc.profile.data) {
+        return c.body(doc.profile.data, 200, {
+          "Content-Type": doc.profile.mimetype,
         });
       }
+      if (doc.profile_url) {
+        return c.redirect(doc.profile_url, 302);
+      }
+      return c.json({ msg: "Image not found" }, 404);
     } catch (e: any) {
       return c.json({ error: e.message || e }, 500);
     }
@@ -238,26 +259,21 @@ export const superAdminController = {
     try {
       const id = c.req.param("id");
       const {
-        fullName,
+        fullname,
         username,
         email,
-        password,
         role,
         phone,
         isActive,
         address,
       } = await c.req.json();
 
-      const hashedPassword = password
-        ? await bcrpyt.hash(password, await bcrpyt.genSalt(10))
-        : undefined;
 
       const body = Object.fromEntries(
         Object.entries({
-          fullName,
+          fullname,
           username,
           email,
-          password: hashedPassword,
           role,
           phone,
           address,
@@ -276,27 +292,25 @@ export const superAdminController = {
     try {
       const id = c.req.param("id");
       const bodyData = await c.req.parseBody();
-      const file = bodyData["profile"] as File;
+      const file = bodyData["profile"] as any;
       const body: any = {};
 
-      if (file && file.size > 0) {
-        const buffer = await file.arrayBuffer();
-        body.profile = {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        };
-      }
-      if (!body.profile) {
-        return c.json({ msg: "Please input file" }, 400);
+      if (file && typeof file === "object" && typeof file.size === "number" && file.size > 0) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const result = await uploadToCloudinary(buffer, "profile_images");
+        body.profile_url = result.secure_url;
+        // Optionally clear the binary profile field if it exists
+        body.$unset = { profile: 1 };
+      } else if (file && typeof file === "string") {
+        // allow updating profile by external URL
+        body.profile_url = file;
       }
 
-      // Only validate profile part
-      const profileSchema = users.pick({ profile: true });
-      const validated = profileSchema.parse(body);
+      if (!body.profile && !body.profile_url) {
+        return c.json({ msg: "Please input file or profile URL" }, 400);
+      }
 
-      await superAdminModel.findByIdAndUpdate(id, validated);
+      await superAdminModel.findByIdAndUpdate(id, body);
       return c.json({
         msg: "Super Admin updated successfully!",
       });
@@ -487,7 +501,7 @@ export const superAdminController = {
       },
       {
         $lookup: {
-          from: "merchants",
+          from: "users",
           localField: "merchant",
           foreignField: "_id",
           as: "merchantData",
@@ -537,6 +551,32 @@ export const superAdminController = {
     ]);
     return c.json({ list: data });
   },
+  updatePassword: async (c: Context) => {
+    try {
+      const { email, old_pass, new_pass } = await c.req.json();
+      if (!email || !old_pass || !new_pass) {
+        return c.json({ msg: "email, old_pass and new_pass are required" }, 400);
+      }
+
+      if (typeof new_pass !== "string" || new_pass.length < 8) {
+        return c.json({ msg: "New password must be at least 8 characters" }, 400);
+      }
+
+      const user = await superAdminModel.findOne({ email });
+      if (!user) return c.json({ msg: "User not found!" }, 404);
+
+      const compare = await bcrpyt.compare(old_pass, user.password);
+      if (!compare) return c.json({ msg: "Old password was not correct" }, 401);
+
+      const salt = await bcrpyt.genSalt(10);
+      user.password = await bcrpyt.hash(new_pass, salt);
+      await user.save();
+      return c.json({ msg: "Password updated successfully!" });
+    } catch (e: any) {
+      return c.json({ error: e.message || e }, 500);
+    }
+  },
+
   updateComission: async (c: Context) => {
     try {
       const id = c.req.param("id");

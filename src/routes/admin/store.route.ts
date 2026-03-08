@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import storeController from "../../services/admin/stores.service.js";
+import storeController from "../../services/users/stores.service.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
 routes.get("/", storeController.getMany);

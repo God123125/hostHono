@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { merchantController } from "../../services/admin/merchant.service.js";
+import { merchantController } from "../../services/users/merchant.service.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
 routes.get("/", merchantController.getMany);
@@ -15,5 +15,5 @@ routes.patch("/update-info/:id", merchantController.updateAccountInfo);
 routes.patch("/update-profile/:id", merchantController.updateProfile);
 routes.patch("/update-commissions/:id", merchantController.updateComission);
 routes.delete("/:id", merchantController.delete);
-routes.get("/profile/:id", merchantController.getProfile);
+// routes.get("/profile/:id", merchantController.getProfile);
 export default routes;
