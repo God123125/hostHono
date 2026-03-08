@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import storeController from "../../services/admin/stores.service.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
 routes.get("/", storeController.getMany);
 routes.get("/search", storeController.search);
-routes.get("/detail-admin/:id", storeController.getDetailForAdmin);
+routes.get("/for-merchant", verifyToken, storeController.getManyForMerchant);
 routes.post("/", storeController.create);
+routes.get("/detail-admin/:id", storeController.getDetailForAdmin);
 routes.patch("/update-info/:id", storeController.updateInfo);
 routes.patch("/update-img/:id", storeController.updateStoreImage);
 routes.delete("/:id", storeController.delete);

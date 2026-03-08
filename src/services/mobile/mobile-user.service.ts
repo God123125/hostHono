@@ -8,6 +8,8 @@ import { transporter } from "./mail-sender.service.js";
 import { tempUserModel } from "../../models/mobile/temp-user.js";
 import type mongoose from "mongoose";
 import tempPassModel from "../../models/mobile/temp-password.js";
+import path from "path";
+import { readFile } from "fs/promises";
 export const mobileUserController = {
   // register: async (c: Context) => {
   //   try {
@@ -49,7 +51,24 @@ export const mobileUserController = {
 
       const code = Math.floor(100000 + Math.random() * 900000);
       const expire = Date.now() + 1000 * 60 * 1; // 5 mins
-
+      const defaultImagePath = path.join(
+        process.cwd(),
+        "src",
+        "images",
+        "default-profile.png",
+      );
+      let profile = {};
+      try {
+        const defaultBuffer = await readFile(defaultImagePath);
+        profile = {
+          filename: "default-profile.png",
+          mimetype: "image/jpg",
+          data: defaultBuffer,
+          length: defaultBuffer.length,
+        };
+      } catch (error) {
+        console.log("Default image not found at:", defaultImagePath);
+      }
       await tempUserModel.findOneAndUpdate(
         { email },
         {
@@ -60,6 +79,7 @@ export const mobileUserController = {
           code,
           expire,
           resendCount: 0,
+          profile,
         },
         { upsert: true }, // use this when can't find any so that it will create a new one
       );
@@ -128,7 +148,7 @@ export const mobileUserController = {
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user!.password);
       if (!compare) return c.json({ message: "Wrong Password" }, 401);
-      const token = getToken(user._id);
+      const token = getToken(user._id.toString()!);
       const expireAt = getExpirationDate(token);
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
@@ -160,7 +180,7 @@ export const mobileUserController = {
     try {
       const users = await mobileUserModel
         .find()
-        .select(["-password", "-profile.data"]);
+        .select(["-password", "-profile"]);
       return c.json({
         list: users,
       });
@@ -343,7 +363,7 @@ export const mobileUserController = {
     }
   },
 };
-function getToken(userId: mongoose.Types.ObjectId) {
+function getToken(userId: string) {
   const secret = process.env.JWT_KEY;
   if (!secret) {
     throw new Error("JWT_KEY is not defined in environment variables.");
