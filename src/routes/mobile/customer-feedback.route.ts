@@ -1,8 +1,11 @@
 import { Hono } from "hono";
 import feedbackController from "../../services/mobile/customer-feedback.service.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
-routes.get("/", feedbackController.getMany);
-routes.post("/", feedbackController.create);
-routes.get("/:id", feedbackController.getById);
+routes.get("/", verifyToken, feedbackController.getMany);
+routes.post("/", verifyToken, feedbackController.create);
+routes.get("/search", verifyToken, feedbackController.search);
+routes.get("/img/:id", feedbackController.getFeedbackImage);
 routes.delete("/:id", feedbackController.delete);
+routes.get("/:id", feedbackController.getById);
 export default routes;

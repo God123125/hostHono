@@ -124,38 +124,65 @@ export const merchantController = {
       const merchants = await merchantModel.aggregate([
         {
           $project: {
-            "profile.data": 0,
-          },
-        },
-        {
-          $addFields: {
-            merchantIdStr: { $toString: "$_id" },
+            profile: 0,
           },
         },
         {
           $lookup: {
             from: "stores",
-            localField: "merchantIdStr",
+            localField: "_id",
             foreignField: "merchant",
             as: "stores",
           },
         },
         {
-          $unwind: {
-            path: "$stores",
-            preserveNullAndEmptyArrays: true,
+          $match: {
+            stores: { $size: 0 }, // merchants with NO store
           },
         },
         {
           $project: {
-            merchantIdStr: 0,
-            "stores.store_img": 0,
-            "stores.store_type": 0,
+            stores: 0,
           },
         },
       ]);
       return c.json({
         list: merchants,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  login: async (c: Context) => {
+    try {
+      const { email, password } = await c.req.json();
+      const user = await merchantModel.findOne({ email });
+      if (!user) return c.json({ message: "Unauthenticated" }, 401);
+      const store = await storeModel.findOne({
+        merchant: user._id.toString(),
+      });
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+
+      const userBody = {
+        fullname: (user as any).name || user.username || "",
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        profile_url: user.profile
+          ? `${baseUrl}/api/merchants/profile/${user._id}`
+          : null,
+        store: store?._id,
+      };
+      const compare = await bcrpyt.compare(password, user.password);
+      if (!compare) return c.json({ message: "Wrong password!" }, 401);
+      const token = getToken(user._id);
+      const expireDate = getExpirationDate(token);
+      return c.json({
+        user: userBody,
+        token: token,
+        expireAt: expireDate,
+        message: "Login Success",
       });
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -180,7 +207,8 @@ export const merchantController = {
   },
   getMerchantDetail: async (c: Context) => {
     try {
-      const id = c.req.param("id");
+      // const id = c.req.param("id");
+      const id = c.get("user");
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const data = await merchantModel.aggregate([
@@ -195,7 +223,7 @@ export const merchantController = {
         },
         {
           $addFields: {
-            merchantIdStr: { $toString: "$_id" },
+            // merchantIdStr: { $toString: "$_id" },
             profile_url: {
               $concat: [
                 `${baseUrl}/api/merchants/profile/`,
@@ -207,17 +235,17 @@ export const merchantController = {
         {
           $lookup: {
             from: "stores",
-            localField: "merchantIdStr",
+            localField: "_id",
             foreignField: "merchant",
             as: "stores",
           },
         },
-        // {
-        //   $unwind: {
-        //     path: "$stores",
-        //     preserveNullAndEmptyArrays: true,
-        //   },
-        // },
+        {
+          $unwind: {
+            path: "$stores",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         {
           $project: {
             merchantIdStr: 0,
@@ -364,40 +392,99 @@ export const merchantController = {
       return c.json({ error: e }, 500);
     }
   },
-
-  login: async (c: Context) => {
+  getOrderInfo: async (c: Context) => {
     try {
-      const { email, password } = await c.req.json();
-      const user = await merchantModel.findOne({ email });
-      if (!user) return c.json({ message: "Unauthenticated" }, 401);
-      const store = await storeModel.findOne({
-        merchant: user._id.toString(),
-      });
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
+      const store = c.get("store");
+      const searchQuery = c.req.query("q")
+        ? decodeURIComponent(c.req.query("q") as string)
+        : null;
 
-      const userBody = {
-        fullname: (user as any).name || user.username || "",
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        profile_url: user.profile
-          ? `${baseUrl}/api/merchants/profile/${user._id}`
-          : null,
-        store: store?._id,
-      };
-      const compare = await bcrpyt.compare(password, user.password);
-      if (!compare) return c.json({ message: "Wrong password!" }, 401);
-      const token = getToken(user._id);
-      const expireDate = getExpirationDate(token);
+      // Build optional search match
+      const searchMatch = searchQuery
+        ? {
+            $match: {
+              $or: [
+                { "userInfo.name": { $regex: searchQuery, $options: "i" } },
+                { "userInfo.email": { $regex: searchQuery, $options: "i" } },
+                { "products.name": { $regex: searchQuery, $options: "i" } },
+                { status: { $regex: searchQuery, $options: "i" } },
+              ],
+            },
+          }
+        : null;
+
+      const data = await orderModel.aggregate([
+        {
+          $unwind: { path: "$products", preserveNullAndEmptyArrays: false },
+        },
+        {
+          $match: { "products.store": store },
+        },
+        {
+          $addFields: { user: { $toObjectId: "$user" } },
+        },
+        {
+          $lookup: {
+            from: "mobile_users",
+            let: { userId: "$user" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$_id", "$$userId"] },
+                },
+              },
+              {
+                $project: {
+                  email: 1,
+                  name: 1,
+                },
+              },
+            ],
+            as: "userInfo",
+          },
+        },
+        {
+          $unwind: {
+            path: "$userInfo",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        ...(searchMatch ? [searchMatch] : []),
+        {
+          $group: {
+            _id: "$_id",
+            // products: {
+            //   $push: {
+            //     name: "$products.name",
+            //     price: "$products.price",
+            //     qty: "$products.qty",
+            //     image_url: "$products.imageUrl",
+            //   },
+            // },
+            delivery_fee: { $first: "$delivery_fee" },
+            total: { $first: "$total" },
+            payment_method: { $first: "$payment_method" },
+            status: { $first: "$status" },
+            user: { $first: "$userInfo" },
+            number_of_products: { $sum: "$products.qty" },
+            order_date: { $first: "$createdAt" },
+          },
+        },
+      ]);
       return c.json({
-        user: userBody,
-        token: token,
-        expireAt: expireDate,
-        message: "Login Success",
+        list: data,
       });
     } catch (e) {
       return c.json({ error: e }, 500);
+    }
+  },
+  getDetailOrderInfo: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const data = await orderModel.findById(id);
+      return c.json(data);
+    } catch (e) {
+      console.log(e);
     }
   },
   getCommissions: async (c: Context) => {

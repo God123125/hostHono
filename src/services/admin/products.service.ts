@@ -18,7 +18,6 @@ const controller = {
         price: price,
         description: formData.get("description") as string,
         category: formData.get("category") as string,
-        qty: Number(formData.get("qty")),
         isActive: formData.get("isActive") == "true" ? true : false,
         discount: Number(formData.get("discount")),
         store: formData.get("store") as string,
@@ -39,7 +38,7 @@ const controller = {
           process.cwd(),
           "src",
           "images",
-          "default_store_category.jpg",
+          "default-product.png",
         );
         try {
           const defaultBuffer = await readFile(defaultImagePath);
@@ -152,7 +151,6 @@ const controller = {
         price: price,
         description: body.description,
         category: body.category,
-        qty: Number(body.qty),
         isActive: body.isActive,
         discount: Number(body.discount),
         store: body.store,
@@ -223,7 +221,7 @@ const controller = {
         store: storeId.toString(),
         category: category_id.toString(),
       };
-      const data = await productModel.find(query).lean();
+      const data = await productModel.find(query).populate("category").lean();
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const formattedData = data.map((el) => {
