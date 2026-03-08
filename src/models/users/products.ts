@@ -5,7 +5,7 @@ export const Product = z.object({
   price: z.number(),
   description: z.string().optional(),
   category: z.string(),
-  qty: z.number().optional(),
+  // qty: z.number().optional(),
   isActive: z.boolean(),
   discount: z.number(),
   totalPrice: z.number(),
@@ -38,9 +38,9 @@ const productSchema = new Schema<Product>(
       ref: "categories",
       required: true,
     },
-    qty: {
-      type: Number,
-    },
+    // qty: {
+    //   type: Number,
+    // },
     isActive: {
       type: Boolean,
       required: true,
@@ -65,6 +65,7 @@ const productSchema = new Schema<Product>(
     },
     image_url: {
       type: String,
+      required: false,
     },
     createdBy: {
       type: String,

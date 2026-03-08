@@ -11,6 +11,6 @@ routes.patch("/update-info/:id", merchantController.updateAccountInfo);
 routes.patch("/update-profile/:id", merchantController.updateProfile);
 routes.patch("/update-commissions/:id", merchantController.updateComission);
 routes.delete("/:id", merchantController.delete);
-routes.get("/profile/:id", merchantController.getProfile);
+// routes.get("/profile/:id", merchantController.getProfile);
 routes.get("/:id", merchantController.getMerchantDetail);
 export default routes;

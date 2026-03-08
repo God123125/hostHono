@@ -15,6 +15,7 @@ import storeDocRoute from "./users/store-document.route.js";
 import dashboardRoute from "./users/dashboard.route.js";
 import merchantRoute from "./users/merchant.route.js";
 import authRoute from "./users/auth.route.js";
+import feedBackRoute from "./mobile/customer-feedback.route.js";
 const HonoRoutes = new Hono();
 
 HonoRoutes.route("/categories", categoryRoute);
@@ -25,6 +26,7 @@ HonoRoutes.route("/stores", storeRoute);
 HonoRoutes.route("/store-categories", storeCategoryRoute);
 HonoRoutes.route("/carts", cartRoute);
 HonoRoutes.route("/orders", orderRoute);
+HonoRoutes.route("/feedbacks", feedBackRoute);
 HonoRoutes.route("/monthly-report", reportRoute);
 HonoRoutes.route("/advertisings", advertisingRoute);
 HonoRoutes.route("/product-document", productDocRoute);
