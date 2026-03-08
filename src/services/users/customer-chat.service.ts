@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { chatModel } from "../../models/admin/customer-chat.js";
+import { chatModel } from "../../models/users/customer-chat.js";
 import { mobileUserModel } from "../../models/mobile/mobile-user.js";
 const clients = new Map<string, WebSocket>();
 export const chatController = {

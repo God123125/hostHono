@@ -1,1 +1,13 @@
-export { default } from "../admin/store.route.js";
+import { Hono } from "hono";
+import storeController from "../../services/users/stores.service.js";
+const routes = new Hono();
+routes.get("/", storeController.getMany);
+routes.get("/search", storeController.search);
+routes.get("/detail-admin/:id", storeController.getDetailForAdmin);
+routes.post("/", storeController.create);
+routes.patch("/update-info/:id", storeController.updateInfo);
+routes.patch("/update-img/:id", storeController.updateStoreImage);
+routes.delete("/:id", storeController.delete);
+routes.get("/store-image/:id", storeController.getStoreImage);
+routes.get("/:id", storeController.getById);
+export default routes;

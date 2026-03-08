@@ -1,33 +1,27 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
 export const users = z.object({
-  fullName: z.string(),
+  fullname: z.string(),
   username: z.string(),
   email: z.string(),
   phone: z.string(),
   address: z.string(),
   password: z.string(),
   isActive: z.boolean(),
-  profile: z
-    .object({
-      filename: z.string(),
-      mimetype: z.string(),
-      data: z.any(),
-      length: z.number(),
-    })
-    .optional(),
+  profile: z.string(),
   role: z.string(),
   commission_rate: z.number(),
 });
 export type users = z.infer<typeof users>;
 const usersSchema = new Schema<users>(
   {
-    fullName: {
-      type: String,
-    },
     username: {
       type: String,
       required: false,
+    },
+    fullname : {
+      type: String,
+      required: true,
     },
     email: {
       type: String,
@@ -44,10 +38,7 @@ const usersSchema = new Schema<users>(
       required: true,
     },
     profile: {
-      filename: String,
-      mimetype: String,
-      data: Buffer,
-      length: Number,
+      type: String,
     },
     isActive: {
       type: Boolean,

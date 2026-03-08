@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { storeModel } from "../../models/admin/stores.js";
-import { Store } from "../../models/admin/stores.js";
+import { storeModel } from "../../models/users/stores.js";
+import { Store } from "../../models/users/stores.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
@@ -247,7 +247,7 @@ const controller = {
             },
             merchant_profile: {
               $concat: [
-                `${baseUrl}/api/admins/profile/`,
+                `${baseUrl}/api/admin-users/profile/`,
                 { $toString: "$merchant._id" },
               ],
             },
@@ -278,7 +278,7 @@ const controller = {
       const id = c.req.param("id");
       const store = await storeModel
         .findById(id)
-        .select("-store_img")
+        .select("-image.data")
         .populate("merchant")
         .lean();
       const url = new URL(c.req.url);
