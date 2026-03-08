@@ -58,8 +58,9 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
+      const store = c.get("store");
       const feedbacks = await feedbackModel
-        .find()
+        .find({ store: store })
         .populate([
           { path: "user", select: ["-profile", "-password", "-address"] },
           { path: "store", select: "-store_img" },
@@ -76,6 +77,56 @@ const controller = {
       });
       return c.json({
         list: formattedFeedback,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  search: async (c: Context) => {
+    try {
+      const store = c.get("store");
+      const searchQuery = c.req.query("q")
+        ? decodeURIComponent(c.req.query("q") as string)
+        : null;
+      const searchMatch = searchQuery
+        ? {
+            $match: {
+              $or: [
+                { "user.name": { $regex: searchQuery, $options: "i" } },
+                { star: { $eq: Number(searchQuery) } },
+              ],
+            },
+          }
+        : null;
+      const data = await feedbackModel.aggregate([
+        {
+          $match: { store: store },
+        },
+        {
+          $addFields: { userObjId: { $toObjectId: "$user" } },
+        },
+        {
+          $lookup: {
+            from: "mobile_users",
+            localField: "userObjId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: { path: "$user", preserveNullAndEmptyArrays: true },
+        },
+        ...(searchMatch ? [searchMatch] : []),
+        {
+          $project: {
+            img_feedback: 0,
+            "user.address": 0,
+            "user.password": 0,
+          },
+        },
+      ]);
+      return c.json({
+        list: data,
       });
     } catch (e) {
       return c.json({ error: e }, 500);
