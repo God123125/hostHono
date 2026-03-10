@@ -1,14 +1,14 @@
 import type { Context } from "hono";
-import categoryModel from "../../models/admin/category.js";
-import { Category } from "../../models/admin/category.js";
+import categoryModel from "../../models/users/category.js";
+import { Category } from "../../models/users/category.js";
 import * as z from "zod";
 const categoryController = {
   create: async (c: Context) => {
     try {
       const body = await c.req.json();
-      body.isActive = true;
-      body.store_id = c.get("store");
-      const savedData = await categoryModel.create(body);
+      Category.parse(body);
+      const category = new categoryModel(body);
+      const savedData = await category.save();
       return c.json({
         msg: "Category created successfully!",
         data: savedData,
@@ -22,8 +22,7 @@ const categoryController = {
   },
   get: async (c: Context) => {
     try {
-      const store_id = c.get("store");
-      const categories = await categoryModel.find({ store_id: store_id });
+      const categories = await categoryModel.find();
       if (categories) {
         return c.json({
           list: categories,
@@ -85,21 +84,6 @@ const categoryController = {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
-      return c.json({ error: e }, 500);
-    }
-  },
-  search: async (c: Context) => {
-    try {
-      const q = decodeURIComponent(c.req.query("q") as string);
-      const store = c.get("store");
-      const data = await categoryModel.find({
-        name: { $regex: q.toString().trim(), $options: "i" },
-        store_id: store,
-      });
-      return c.json({
-        list: data,
-      });
-    } catch (e) {
       return c.json({ error: e }, 500);
     }
   },

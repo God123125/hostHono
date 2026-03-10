@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import storeDocModel, { storeDoc } from "../../models/admin/stores-document.js";
+import storeDocModel, { storeDoc } from "../../models/users/stores-document.js";
 import * as z from "zod";
 export const storeDocController = {
   create: async (c: Context) => {

@@ -34,7 +34,7 @@ HonoRoutes.route("/storeCate-document", storeCateDocRoute);
 HonoRoutes.route("/stores-document", storeDocRoute);
 HonoRoutes.route("/dashboard", dashboardRoute);
 HonoRoutes.route("/merchants", merchantRoute);
-HonoRoutes.route("/auth", authRoute);
+// HonoRoutes.route("/auth", authRoute);
 // Alias auth routes under `/users` so a single endpoint handles both super-admin and merchants
 HonoRoutes.route("/users", authRoute);
 export default HonoRoutes;

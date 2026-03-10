@@ -2,96 +2,66 @@ import type { Context } from "hono";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Merchant, merchantModel } from "../../models/admin/merchants.js";
+import { Merchant, merchantModel } from "../../models/users/merchants.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
-import { storeModel } from "../../models/admin/stores.js";
+import { storeModel } from "../../models/users/stores.js";
 import mongoose from "mongoose";
-import { commissionModel } from "../../models/admin/commission.js";
+import { commissionModel } from "../../models/users/commission.js";
 export const merchantController = {
   createMerchant: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
-      const bodyData = await c.req.parseBody();
-      const email = bodyData["email"] as string;
-
-      // Check if email already exists
-      const existingUser = await merchantModel.findOne({ email });
-      if (existingUser) {
-        return c.json({ error: "Email already exists!" }, 400);
-      }
-
-      const file = bodyData["profile"] as File;
-      const password = bodyData["password"] as string;
-      const hashPass = await bcrpyt.hash(password, salt);
+      // Expect JSON body. Optional `profile` may be a base64 string or an object { filename, mimetype, data }
+      const bodyData: any = await c.req.json();
+      const password = bodyData.password;
+      const hashPass = await bcrpyt.hash(password as string, salt);
       const body: any = {
-        name: (bodyData["name"] as string) || "",
-        username: bodyData["username"] as string,
-        email: bodyData["email"] as string,
+        name: bodyData.name as string,
+        username: bodyData.username as string,
+        email: bodyData.email as string,
         password: hashPass,
-        role: bodyData["role"] as string,
-        phone: (bodyData["phone"] as string) || "",
-        address: (bodyData["address"] as string) || "",
-        commission_rate: Number(bodyData["commission_rate"]) || 0,
-        isActive:
-          bodyData["isActive"] !== undefined
-            ? Boolean(bodyData["isActive"])
-            : true,
+        role: bodyData.role as string,
+        phone: bodyData.phone as string,
+        address: bodyData.address as string,
+        commission_rate: Number(bodyData.commission_rate) || 0,
+        isActive: bodyData.isActive !== undefined ? Boolean(bodyData.isActive) : true,
       };
 
-      // Handle profile as File from form data (like super admin)
-      if (file && file.size > 0) {
-        const buffer = await file.arrayBuffer();
-        body.profile = {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        };
+      // Handle optional profile in JSON (base64 or object)
+      if (bodyData.profile) {
+        try {
+          let buffer: Buffer | null = null;
+          let filename = bodyData.profile_filename || "profile.png";
+          let mimetype = bodyData.profile_mimetype || "image/png";
+
+          if (typeof bodyData.profile === "string") {
+            // plain base64 string or data URL
+            const b64 = (bodyData.profile as string).replace(/^data:.*;base64,/, "");
+            buffer = Buffer.from(b64, "base64");
+          } else if (typeof bodyData.profile === "object" && bodyData.profile.data) {
+            const p = bodyData.profile as any;
+            const b64 = (p.data as string).replace(/^data:.*;base64,/, "");
+            buffer = Buffer.from(b64, "base64");
+            filename = p.filename || filename;
+            mimetype = p.mimetype || mimetype;
+          }
+
+          if (buffer) {
+            body.profile = {
+              filename,
+              mimetype,
+              data: buffer,
+              length: buffer.length,
+            };
+          }
+        } catch (err) {
+          console.log("Failed to parse profile from JSON:", err);
+        }
       }
 
-      // --- Base64 profile handling (commented out) ---
-      // // Handle optional profile in JSON (base64 or object)
-      // if (bodyData.profile) {
-      //   try {
-      //     let buffer: Buffer | null = null;
-      //     let filename = bodyData.profile_filename || "profile.png";
-      //     let mimetype = bodyData.profile_mimetype || "image/png";
-      //
-      //     if (typeof bodyData.profile === "string") {
-      //       // plain base64 string or data URL
-      //       const b64 = (bodyData.profile as string).replace(
-      //         /^data:.*;base64,/,
-      //         "",
-      //       );
-      //       buffer = Buffer.from(b64, "base64");
-      //     } else if (
-      //       typeof bodyData.profile === "object" &&
-      //       bodyData.profile.data
-      //     ) {
-      //       const p = bodyData.profile as any;
-      //       const b64 = (p.data as string).replace(/^data:.*;base64,/, "");
-      //       buffer = Buffer.from(b64, "base64");
-      //       filename = p.filename || filename;
-      //       mimetype = p.mimetype || mimetype;
-      //     }
-      //
-      //     if (buffer) {
-      //       body.profile = {
-      //         filename,
-      //         mimetype,
-      //         data: buffer,
-      //         length: buffer.length,
-      //       };
-      //     }
-      //   } catch (err) {
-      //     console.log("Failed to parse profile from JSON:", err);
-      //   }
-      // }
-      // --- End base64 profile handling ---
-
-      // If no profile provided, use default image
+      // If no profile provided or parsing failed, use default image
       if (!body.profile) {
         const defaultImagePath = path.join(
           process.cwd(),
@@ -104,7 +74,7 @@ export const merchantController = {
           body.profile = {
             filename: "default-profile.png",
             mimetype: "image/png",
-            data: defaultBuffer,
+            data: Buffer.from(defaultBuffer),
             length: defaultBuffer.length,
           };
         } catch (error) {
@@ -112,11 +82,11 @@ export const merchantController = {
         }
       }
 
-      const merchant = new merchantModel(body);
-      await merchant.save();
+      await merchantModel.create(body);
       return c.json({ msg: "Merchant created successfully!" });
-    } catch (e: any) {
-      return c.json({ error: e.message || e }, 500);
+    } catch (e) {
+      console.log(e);
+      return c.json({ error: e }, 500);
     }
   },
   getMany: async (c: Context) => {
@@ -188,23 +158,7 @@ export const merchantController = {
       return c.json({ error: e }, 500);
     }
   },
-  getProfile: async (c: Context) => {
-    try {
-      const id = c.req.param("id");
-      const img = await merchantModel.findById(id).select("profile");
-      if (img) {
-        return c.body(img!.profile!.data, 200, {
-          "Content-Type": img!.profile!.mimetype,
-        });
-      } else {
-        return c.json({
-          msg: "Image not found!",
-        });
-      }
-    } catch (e) {
-      return c.json({ error: e }, 500);
-    }
-  },
+ 
   getMerchantDetail: async (c: Context) => {
     try {
       // const id = c.req.param("id");
@@ -511,7 +465,7 @@ export const merchantController = {
       },
       {
         $lookup: {
-          from: "merchants",
+          from: "users",
           localField: "merchant",
           foreignField: "_id",
           as: "merchantData",
