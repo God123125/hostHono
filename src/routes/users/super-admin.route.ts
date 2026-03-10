@@ -4,7 +4,6 @@ const routes = new Hono();
 routes.get("/", superAdminController.getUsers);
 routes.get("/search", superAdminController.search);
 routes.post("/", superAdminController.create);
-routes.post("/login", superAdminController.login);
 routes.get("/profile/:id", superAdminController.getUserProfile);
 routes.patch("/update-info/:id", superAdminController.updateAccountInfo);
 routes.patch("/update-profile/:id", superAdminController.updateProfile);

@@ -1,10 +1,9 @@
 import type { Context } from "hono";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 import { merchantModel } from "../../models/users/merchants.js";
 import { storeModel } from "../../models/users/stores.js";
-import superAdminModel from "../../models/users/users.js";
+import users from "../../models/users/users.js";
 
 function getToken(payload: object) {
   const secret = process.env.JWT_KEY;
@@ -21,25 +20,21 @@ function getExpirationDate(token: string): Date | null {
 export const authController = {
   login: async (c: Context) => {
     try {
-      const { email, password, role } = (await c.req.json()) as any;
+      const { email, password } = (await c.req.json()) as any;
 
       if (!email || !password) {
         return c.json({ message: "Email and password are required" }, 400);
       }
 
-      // If role provided, restrict search to that role
+      // determine role by looking up the email in the DB (do NOT trust client)
       let user: any = null;
       let userRole: string | null = null;
 
-      if (!role || role === "super-admin") {
-        user = await superAdminModel.findOne({ email });
-        if (user) userRole = "super-admin";
-      }
+      // try super-admin first
+      user = await users.findOne({ email });
+      console.log("Super-admin user found:", !!user);
+      if (user) userRole = user.role || "super-admin"; // default to super-admin if role field is missing
 
-      if (!user && (!role || role === "merchant")) {
-        user = await merchantModel.findOne({ email });
-        if (user) userRole = "merchant";
-      }
 
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
 
@@ -47,7 +42,7 @@ export const authController = {
       if (!match) return c.json({ message: "Wrong password" }, 401);
 
       // optional: include store id for merchants
-      let store = null;
+      let store: any = null;
       if (userRole === "merchant") {
         const s = await storeModel.findOne({ merchant: user._id.toString() }).select("_id");
         store = s?._id ?? null;
@@ -92,7 +87,8 @@ export const authController = {
         };
       }
 
-      return c.json({ user: userBody, token, expireAt });
+      const response = { user: userBody, token, expireAt };
+      return c.json(response);
     } catch (e: any) {
       return c.json({ error: e.message || e }, 500);
     }

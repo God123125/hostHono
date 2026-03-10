@@ -18,18 +18,29 @@ export const merchantController = {
       const password = bodyData.password;
       const hashPass = await bcrpyt.hash(password as string, salt);
       const body: any = {
-        name: bodyData.name as string,
+        // map incoming fields to `users` schema
+        fullname: (bodyData.name || bodyData.fullname || bodyData.ownerName) as string,
         username: bodyData.username as string,
         email: bodyData.email as string,
         password: hashPass,
-        role: bodyData.role as string,
+        role: bodyData.role || "merchant",
         phone: bodyData.phone as string,
         address: bodyData.address as string,
         commission_rate: Number(bodyData.commission_rate) || 0,
         isActive: bodyData.isActive !== undefined ? Boolean(bodyData.isActive) : true,
+        // merchant-specific
+        brandImage: bodyData.brandImage || bodyData.brand_image || null,
+        ownerName: bodyData.ownerName || bodyData.owner_name || null,
+        totalProducts: Number(bodyData.totalProducts) || 0,
+        totalOrders: Number(bodyData.totalOrders) || 0,
+        totalRevenue: Number(bodyData.totalRevenue) || 0,
+        commissionPaid: Number(bodyData.commissionPaid) || 0,
+        joinDate: bodyData.joinDate ? new Date(bodyData.joinDate) : undefined,
+        status: bodyData.status || "active",
+        rating: Number(bodyData.rating) || 0,
       };
 
-      // Handle optional profile in JSON (base64 or object)
+      // Handle optional profile in JSON (base64 or object) or brandImage
       if (bodyData.profile) {
         try {
           let buffer: Buffer | null = null;
@@ -49,16 +60,17 @@ export const merchantController = {
           }
 
           if (buffer) {
-            body.profile = {
-              filename,
-              mimetype,
-              data: buffer,
-              length: buffer.length,
-            };
+            // store profile as base64 data URI string for `users.profile`
+            body.profile = `data:${mimetype};base64,${buffer.toString("base64")}`;
           }
         } catch (err) {
           console.log("Failed to parse profile from JSON:", err);
         }
+      }
+
+      // If brandImage provided as base64 or URL, prefer it
+      if (bodyData.brandImage) {
+        body.brandImage = bodyData.brandImage;
       }
 
       // If no profile provided or parsing failed, use default image
@@ -71,12 +83,7 @@ export const merchantController = {
         );
         try {
           const defaultBuffer = await readFile(defaultImagePath);
-          body.profile = {
-            filename: "default-profile.png",
-            mimetype: "image/png",
-            data: Buffer.from(defaultBuffer),
-            length: defaultBuffer.length,
-          };
+          body.profile = `data:image/png;base64,${Buffer.from(defaultBuffer).toString("base64")}`;
         } catch (error) {
           console.log("Default image not found at:", defaultImagePath);
         }
@@ -89,14 +96,12 @@ export const merchantController = {
       return c.json({ error: e }, 500);
     }
   },
-  getMany: async (c: Context) => {
+  getAllBusiness: async (c: Context) => {
     try {
+      // Return only users with role 'merchant', include their stores
       const merchants = await merchantModel.aggregate([
-        {
-          $project: {
-            profile: 0,
-          },
-        },
+        { $match: { role: "merchant" } },
+        { $project: { "profile": 0, password: 0 } },
         {
           $lookup: {
             from: "stores",
@@ -105,16 +110,7 @@ export const merchantController = {
             as: "stores",
           },
         },
-        {
-          $match: {
-            stores: { $size: 0 }, // merchants with NO store
-          },
-        },
-        {
-          $project: {
-            stores: 0,
-          },
-        },
+        { $project: { "stores.store_img": 0, "stores.store_type": 0 } },
       ]);
       return c.json({
         list: merchants,

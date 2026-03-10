@@ -1,12 +1,11 @@
 import { Hono } from "hono";
 import { merchantController } from "../../services/users/merchant.service.js";
 const routes = new Hono();
-routes.get("/", merchantController.getMany);
+routes.get("/", merchantController.getAllBusiness);
 routes.get("/search", merchantController.search);
 routes.get("/overall-stats", merchantController.getMerchantOverallStats);
 routes.get("/commissions", merchantController.getCommissions);
 routes.post("/", merchantController.createMerchant);
-routes.post("/login", merchantController.login);
 routes.patch("/update-info/:id", merchantController.updateAccountInfo);
 routes.patch("/update-profile/:id", merchantController.updateProfile);
 routes.patch("/update-commissions/:id", merchantController.updateComission);
