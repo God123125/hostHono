@@ -8,16 +8,14 @@ export const Product = z.object({
   // qty: z.number().optional(),
   isActive: z.boolean(),
   discount: z.number(),
-  price_after_discount: z.number(),
+  totalPrice: z.number(),
   store: z.string(),
-  image: z
-    .object({
-      filename: z.string(),
-      mimetype: z.string(),
-      data: z.any(), // Buffer
-      length: z.number(),
-    })
-    .optional(),
+  image: z.object({
+    filename: z.string(),
+    mimetype: z.string(),
+    data: z.any(), // Buffer
+    length: z.number(),
+  }),
   image_url: z.string().optional(),
   createdBy: z.string(),
 });
@@ -51,7 +49,7 @@ const productSchema = new Schema<Product>(
       type: Number,
       required: false,
     },
-    price_after_discount: {
+    totalPrice: {
       type: Number,
     },
     store: {
@@ -71,7 +69,7 @@ const productSchema = new Schema<Product>(
     },
     createdBy: {
       type: String,
-      ref: "merchants",
+      ref: "users",
       required: true,
     },
   },

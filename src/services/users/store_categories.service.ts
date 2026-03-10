@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { storeCategoryModel } from "../../models/admin/store_categories.js";
-import { storeCategory } from "../../models/admin/store_categories.js";
+import { storeCategoryModel } from "../../models/users/store_categories.js";
+import { storeCategory } from "../../models/users/store_categories.js";
 import path from "path";
 import { readFile } from "fs/promises";
 import * as z from "zod";
