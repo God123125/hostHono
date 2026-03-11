@@ -16,12 +16,18 @@ import dashboardRoute from "./users/dashboard.route.js";
 import authRoute from "./users/auth.route.js";
 import feedBackRoute from "./mobile/customer-feedback.route.js";
 import { adminRoute } from "./admin/merchant.route.js";
+import mobileProductRoute from "./mobile/products.route.js";
+import mobileCategoryRoute from "./mobile/category.route.js";
+import mobileStoreRoute from "./mobile/store.route.js";
 const HonoRoutes = new Hono();
 
 HonoRoutes.route("/categories", categoryRoute);
+HonoRoutes.route("/mobile/categories", mobileCategoryRoute);
 HonoRoutes.route("/products", productRoute);
+HonoRoutes.route("/mobile/products", mobileProductRoute);
 HonoRoutes.route("/mobile-users", mobileUserRoute);
 HonoRoutes.route("/stores", storeRoute);
+HonoRoutes.route("/mobile/stores", mobileStoreRoute);
 HonoRoutes.route("/store-categories", storeCategoryRoute);
 HonoRoutes.route("/carts", cartRoute);
 HonoRoutes.route("/orders", orderRoute);
@@ -35,5 +41,5 @@ HonoRoutes.route("/dashboard", dashboardRoute);
 HonoRoutes.route("/auth", authRoute);
 // Alias auth routes under `/users` so a single endpoint handles both super-admin and merchants
 HonoRoutes.route("/users", authRoute);
-HonoRoutes.route("/admins",adminRoute);
+HonoRoutes.route("/admins", adminRoute);
 export default HonoRoutes;

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import categoryController from "../../services/admin/category.service.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 const routes = new Hono();
-routes.get("/", verifyToken, categoryController.get);
+routes.get("/", verifyToken, categoryController.getManyForAdmin);
 routes.post("/", verifyToken, categoryController.create);
 routes.get("search", verifyToken, categoryController.search);
 routes.get("/:id", categoryController.getById);

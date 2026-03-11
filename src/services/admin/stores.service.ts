@@ -130,75 +130,6 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
-  getManyForMobile: async (c: Context) => {
-    try {
-      // const stores = await storeModel
-      //   .find()
-      //   .populate({
-      //     path: "merchant",
-      //     select: ["-profile", "-password"],
-      //   })
-      //   .populate({
-      //     path: "store_category",
-      //     select: "-image.data",
-      //   })
-      //   .select("-store_img.data")
-      //   .lean();
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.origin}`;
-      const stores = await storeModel.aggregate([
-        { $project: { store_img: 0 } },
-        { $addFields: { idAsString: { $toString: "$_id" } } },
-        {
-          $lookup: {
-            from: "customer_feedbacks",
-            localField: "idAsString",
-            foreignField: "store",
-            as: "feedbackData",
-          },
-        },
-        {
-          $addFields: {
-            totalFeedbacks: { $size: "$feedbackData" },
-            totalStars: { $sum: "$feedbackData.star" },
-            image_url: {
-              $concat: [
-                `${baseUrl}/api/stores/store-image/`,
-                { $toString: "$_id" },
-              ],
-            },
-          },
-        },
-        {
-          $addFields: {
-            averageStar: {
-              $cond: {
-                if: { $gt: ["$totalFeedbacks", 0] },
-                then: {
-                  $round: [{ $divide: ["$totalStars", "$totalFeedbacks"] }, 1],
-                },
-                else: 0,
-              },
-            },
-          },
-        },
-      ]);
-      // const count = stores.length;
-      // const url = new URL(c.req.url);
-      // const baseUrl = `${url.origin}`;
-      // const formattedData = stores.map((el) => {
-      //   return {
-      //     ...el,
-      //     image_url: `${baseUrl}/api/stores/store-image/${el._id}`,
-      //   };
-      // });
-      return c.json({
-        list: stores,
-      });
-    } catch (e) {
-      return c.json({ error: e }, 500);
-    }
-  },
   getDetailForAdmin: async (c: Context) => {
     try {
       const id = c.req.param("id");
@@ -483,6 +414,82 @@ const controller = {
           msg: "Store not found!",
         });
       }
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  //function for mobile app
+  getManyForMobile: async (c: Context) => {
+    try {
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const stores = await storeModel.aggregate([
+        { $project: { store_img: 0 } },
+        { $addFields: { idAsString: { $toString: "$_id" } } },
+        {
+          $lookup: {
+            from: "customer_feedbacks",
+            let: { storeId: "$idAsString" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$store", "$$storeId"] },
+                },
+              },
+              {
+                $project: {
+                  img_feedback: 0,
+                },
+              },
+              {
+                $addFields: {
+                  img_feedback: {
+                    $concat: [
+                      `${baseUrl}/api/feedbacks/img/`,
+                      { $toString: "$_id" },
+                    ],
+                  }, // add new fields
+                },
+              },
+            ],
+            as: "feedbackData",
+          },
+        },
+        {
+          $addFields: {
+            totalFeedbacks: { $size: "$feedbackData" },
+            totalStars: { $sum: "$feedbackData.star" },
+            image_url: {
+              $concat: [
+                `${baseUrl}/api/stores/store-image/`,
+                { $toString: "$_id" },
+              ],
+            },
+          },
+        },
+        {
+          $addFields: {
+            averageStar: {
+              $cond: {
+                if: { $gt: ["$totalFeedbacks", 0] },
+                then: {
+                  $round: [{ $divide: ["$totalStars", "$totalFeedbacks"] }, 1],
+                },
+                else: 0,
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            idAsString: 0,
+            totalStars: 0,
+          },
+        },
+      ]);
+      return c.json({
+        list: stores,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }

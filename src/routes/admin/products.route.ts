@@ -9,7 +9,6 @@ routes.get(
   verifyToken,
   productController.getProductsGroupedByCategory,
 );
-routes.get("/mobile-products", productController.getManyForMobile); // for mobile app
 routes.get("/search", verifyToken, productController.search);
 routes.post("/", verifyToken, productController.create);
 routes.patch("/update-info/:id", verifyToken, productController.updateInfo);

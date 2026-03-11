@@ -59,10 +59,15 @@ const controller = {
   getMany: async (c: Context) => {
     try {
       const store = c.get("store");
+      const query: any = {};
+      if (store) query.store = store;
       const feedbacks = await feedbackModel
-        .find({ store: store })
+        .find(query)
         .populate([
-          { path: "user", select: ["-profile", "-password", "-address"] },
+          {
+            path: "user",
+            select: ["-profile", "-password", "-address", "-role"],
+          },
           { path: "store", select: "-store_img" },
         ])
         .select("-img_feedback")

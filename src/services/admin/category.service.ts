@@ -20,7 +20,7 @@ const categoryController = {
       return c.json({ error: e }, 500);
     }
   },
-  get: async (c: Context) => {
+  getManyForAdmin: async (c: Context) => {
     try {
       const store_id = c.get("store");
       const categories = await categoryModel.find({ store_id: store_id });
@@ -98,6 +98,22 @@ const categoryController = {
       });
       return c.json({
         list: data,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  //function for mobile app
+  getManyForMobile: async (c: Context) => {
+    try {
+      const storeId = c.req.query("store");
+      const categories = await categoryModel
+        .find({
+          store_id: storeId,
+        })
+        .select("-store_id");
+      return c.json({
+        list: categories,
       });
     } catch (e) {
       return c.json({ error: e }, 500);

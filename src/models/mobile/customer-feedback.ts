@@ -25,7 +25,7 @@ const feedbackSchema = new Schema<feedback>(
     },
     user: {
       type: String,
-      ref: "mobile_users",
+      ref: "admins",
       required: true,
     },
     store: {
