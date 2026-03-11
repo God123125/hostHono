@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { merchantModel } from "../../models/admin/merchants.js";
+import { adminModel } from "../../models/admin/merchants.js";
 import { storeModel } from "../../models/admin/stores.js";
 import superAdminModel from "../../models/admin/users.js";
 
@@ -37,7 +37,7 @@ export const authController = {
       }
 
       if (!user && (!role || role === "merchant")) {
-        user = await merchantModel.findOne({ email });
+        user = await adminModel.findOne({ email });
         if (user) userRole = "merchant";
       }
 
@@ -115,7 +115,7 @@ export const authController = {
         .findById(id)
         .select("-password -profile.data");
       if (sa) return c.json({ user: sa });
-      const m = await merchantModel
+      const m = await adminModel
         .findById(id)
         .select("-password -profile.data");
       if (m) return c.json({ user: m });

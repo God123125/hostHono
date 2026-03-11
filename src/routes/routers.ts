@@ -13,15 +13,14 @@ import productDocRoute from "./users/product-document.route.js";
 import storeCateDocRoute from "./users/store-categories-document.route.js";
 import storeDocRoute from "./users/store-document.route.js";
 import dashboardRoute from "./users/dashboard.route.js";
-import merchantRoute from "./users/merchant.route.js";
 import authRoute from "./users/auth.route.js";
 import feedBackRoute from "./mobile/customer-feedback.route.js";
+import { adminRoute } from "./admin/merchant.route.js";
 const HonoRoutes = new Hono();
 
 HonoRoutes.route("/categories", categoryRoute);
 HonoRoutes.route("/products", productRoute);
 HonoRoutes.route("/mobile-users", mobileUserRoute);
-HonoRoutes.route("/admins", superAdminRoute);
 HonoRoutes.route("/stores", storeRoute);
 HonoRoutes.route("/store-categories", storeCategoryRoute);
 HonoRoutes.route("/carts", cartRoute);
@@ -33,8 +32,8 @@ HonoRoutes.route("/product-document", productDocRoute);
 HonoRoutes.route("/storeCate-document", storeCateDocRoute);
 HonoRoutes.route("/stores-document", storeDocRoute);
 HonoRoutes.route("/dashboard", dashboardRoute);
-HonoRoutes.route("/merchants", merchantRoute);
 HonoRoutes.route("/auth", authRoute);
 // Alias auth routes under `/users` so a single endpoint handles both super-admin and merchants
 HonoRoutes.route("/users", authRoute);
+HonoRoutes.route("/admins",adminRoute);
 export default HonoRoutes;

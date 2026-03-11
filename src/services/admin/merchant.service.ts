@@ -2,22 +2,21 @@ import type { Context } from "hono";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Merchant, merchantModel } from "../../models/admin/merchants.js";
+import {adminModel } from "../../models/admin/merchants.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
 import { storeModel } from "../../models/admin/stores.js";
 import mongoose from "mongoose";
 import { commissionModel } from "../../models/admin/commission.js";
-export const merchantController = {
+export const adminController = {
   createMerchant: async (c: Context) => {
     try {
       const salt = await bcrpyt.genSalt();
       const bodyData = await c.req.parseBody();
       const email = bodyData["email"] as string;
-
       // Check if email already exists
-      const existingUser = await merchantModel.findOne({ email });
+      const existingUser = await adminModel.findOne({ email });
       if (existingUser) {
         return c.json({ error: "Email already exists!" }, 400);
       }
@@ -26,7 +25,7 @@ export const merchantController = {
       const password = bodyData["password"] as string;
       const hashPass = await bcrpyt.hash(password, salt);
       const body: any = {
-        name: (bodyData["name"] as string) || "",
+        fullname: (bodyData["name"] as string) || "",
         username: bodyData["username"] as string,
         email: bodyData["email"] as string,
         password: hashPass,
@@ -34,10 +33,7 @@ export const merchantController = {
         phone: (bodyData["phone"] as string) || "",
         address: (bodyData["address"] as string) || "",
         commission_rate: Number(bodyData["commission_rate"]) || 0,
-        isActive:
-          bodyData["isActive"] !== undefined
-            ? Boolean(bodyData["isActive"])
-            : true,
+        isActive: true
       };
 
       // Handle profile as File from form data (like super admin)
@@ -112,16 +108,15 @@ export const merchantController = {
         }
       }
 
-      const merchant = new merchantModel(body);
-      await merchant.save();
-      return c.json({ msg: "Merchant created successfully!" });
+      await adminModel.create(body);
+      return c.json({ msg: "Admin created successfully!" });
     } catch (e: any) {
       return c.json({ error: e.message || e }, 500);
     }
   },
   getMany: async (c: Context) => {
     try {
-      const merchants = await merchantModel.aggregate([
+      const merchants = await adminModel.aggregate([
         {
           $project: {
             profile: 0,
@@ -156,15 +151,14 @@ export const merchantController = {
   login: async (c: Context) => {
     try {
       const { email, password } = await c.req.json();
-      const user = await merchantModel.findOne({ email });
+      const user = await adminModel.findOne({ email });
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const store = await storeModel.findOne({
         merchant: user._id.toString(),
       });
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
-
-      const userBody = {
+      const userBody: any = {
         fullname: (user as any).name || user.username || "",
         email: user.email,
         phone: user.phone,
@@ -172,8 +166,10 @@ export const merchantController = {
         profile_url: user.profile
           ? `${baseUrl}/api/merchants/profile/${user._id}`
           : null,
-        store: store?._id,
       };
+      if(store){
+        userBody.store = store?._id;
+      }
       const compare = await bcrpyt.compare(password, user.password);
       if (!compare) return c.json({ message: "Wrong password!" }, 401);
       const token = getToken(user._id);
@@ -191,7 +187,7 @@ export const merchantController = {
   getProfile: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const img = await merchantModel.findById(id).select("profile");
+      const img = await adminModel.findById(id).select("profile");
       if (img) {
         return c.body(img!.profile!.data, 200, {
           "Content-Type": img!.profile!.mimetype,
@@ -211,7 +207,7 @@ export const merchantController = {
       const id = c.get("user");
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
-      const data = await merchantModel.aggregate([
+      const data = await adminModel.aggregate([
         {
           $project: {
             "profile.data": 0,
@@ -292,7 +288,7 @@ export const merchantController = {
         }).filter(([_, v]) => v !== undefined),
       );
 
-      await merchantModel.findByIdAndUpdate(id, body, { new: true });
+      await adminModel.findByIdAndUpdate(id, body, { new: true });
 
       return c.json({ msg: "Merchant updated successfully!" });
     } catch (e) {
@@ -319,7 +315,7 @@ export const merchantController = {
       if (!body.profile) {
         return c.json({ msg: "No image provided" }, 400);
       }
-      await merchantModel.findByIdAndUpdate(id, body, { new: true });
+      await adminModel.findByIdAndUpdate(id, body, { new: true });
       return c.json({ msg: "Profile updated successfully!" });
     } catch (e) {
       return c.json({ error: e }, 500);
@@ -328,7 +324,7 @@ export const merchantController = {
   delete: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      await merchantModel.findByIdAndDelete(id);
+      await adminModel.findByIdAndDelete(id);
       return c.json({
         msg: "Merchant deleted successfully!",
       });
@@ -339,7 +335,7 @@ export const merchantController = {
   search: async (c: Context) => {
     try {
       const search = decodeURIComponent(c.req.query("q") as string);
-      const data = await merchantModel.find({
+      const data = await adminModel.find({
         username: { $regex: search, $options: "i" },
       });
       if (data.length > 0) {
@@ -357,8 +353,8 @@ export const merchantController = {
   },
   getMerchantOverallStats: async (c: Context) => {
     try {
-      const totalMerchants = await merchantModel.countDocuments();
-      const totalActiveMerchants = await merchantModel.countDocuments({
+      const totalMerchants = await adminModel.countDocuments();
+      const totalActiveMerchants = await adminModel.countDocuments({
         isActive: true,
       });
 

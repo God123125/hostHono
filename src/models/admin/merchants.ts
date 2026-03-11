@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
-export const Merchant = z.object({
-  name: z.string(),
+export const Admin = z.object({
+  fullname: z.string(),
   username: z.string(),
   email: z.string(),
   phone: z.string(),
@@ -19,12 +19,11 @@ export const Merchant = z.object({
   role: z.string(),
   commission_rate: z.number(),
 });
-export type Merchant = z.infer<typeof Merchant>;
-const merchantSchema = new Schema<Merchant>(
+export type Admin = z.infer<typeof Admin>;
+const adminSchema = new Schema<Admin>(
   {
-    name: {
+    fullname: {
       type: String,
-      required: true,
     },
     username: {
       type: String,
@@ -36,11 +35,9 @@ const merchantSchema = new Schema<Merchant>(
     },
     phone: {
       type: String,
-      required: true,
     },
     address: {
       type: String,
-      required: true,
     },
     password: {
       type: String,
@@ -65,7 +62,7 @@ const merchantSchema = new Schema<Merchant>(
   },
   { timestamps: true },
 );
-export const merchantModel = mongoose.model<Merchant>(
-  "merchants",
-  merchantSchema,
+export const adminModel = mongoose.model<Admin>(
+  "admins",
+  adminSchema,
 );

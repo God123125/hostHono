@@ -100,6 +100,36 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
+  getManyForMobile: async (c: Context)=>{
+      try {
+      const { limit, category,store } = c.req.query();
+      const query: any = {};
+      if (category) query.category = category.toString();
+      if(store) query.store = store.toString();
+      const products = await productModel
+        .find(query)
+        .select("-image")
+        .populate("category")
+        .limit(Number(limit))
+        .lean(); // use to read data not copy plain object from mongodb
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`; //origin yor tah url derm ot yor query te
+      const productWithImage = products.map((el) => ({
+        ...el,
+        image_url: `${baseUrl}/api/products/img/${el._id}`,
+      }));
+      const total = productWithImage.length;
+      return c.json({
+        list: productWithImage,
+        total: total,
+      });
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return c.json(e, 400);
+      }
+      return c.json({ error: e }, 500);
+    }
+  },
   getImage: async (c: Context) => {
     try {
       const id = c.req.param("id");

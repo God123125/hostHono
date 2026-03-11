@@ -129,6 +129,37 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
+  getManyForMobile: async (c: Context)=>{
+    try{
+      const stores = await storeModel
+        .find()
+        .populate({
+          path: "merchant",
+          select: ["-profile", "-password"],
+        })
+        .populate({
+          path: "store_category",
+          select: "-image.data",
+        })
+        .select("-store_img.data")
+        .lean();
+      const count = stores.length;
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedData = stores.map((el) => {
+        return {
+          ...el,
+          image_url: `${baseUrl}/api/stores/store-image/${el._id}`,
+        };
+      });
+      return c.json({
+        list: formattedData,
+        total: count,
+      });
+    }catch(e){
+      return c.json({error: e},500)
+    }
+  },
   getDetailForAdmin: async (c: Context) => {
     try {
       const id = c.req.param("id");
