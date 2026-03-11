@@ -19,6 +19,7 @@ import { adminRoute } from "./admin/merchant.route.js";
 import mobileProductRoute from "./mobile/products.route.js";
 import mobileCategoryRoute from "./mobile/category.route.js";
 import mobileStoreRoute from "./mobile/store.route.js";
+import favoriteItemRoute from "./mobile/favorite-item.route.js";
 const HonoRoutes = new Hono();
 
 HonoRoutes.route("/categories", categoryRoute);
@@ -28,6 +29,7 @@ HonoRoutes.route("/mobile/products", mobileProductRoute);
 HonoRoutes.route("/mobile-users", mobileUserRoute);
 HonoRoutes.route("/stores", storeRoute);
 HonoRoutes.route("/mobile/stores", mobileStoreRoute);
+HonoRoutes.route("/favorite-items", favoriteItemRoute);
 HonoRoutes.route("/store-categories", storeCategoryRoute);
 HonoRoutes.route("/carts", cartRoute);
 HonoRoutes.route("/orders", orderRoute);
