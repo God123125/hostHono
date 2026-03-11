@@ -5,6 +5,7 @@ const routes = new Hono();
 routes.get("/", storeController.getMany);
 routes.get("/search", storeController.search);
 routes.get("/for-merchant", verifyToken, storeController.getManyForMerchant);
+routes.get("/stores-for-mobile", storeController.getManyForMobile);
 routes.post("/", storeController.create);
 routes.get("/detail-admin/:id", storeController.getDetailForAdmin);
 routes.patch("/update-info/:id", storeController.updateInfo);

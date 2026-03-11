@@ -15,6 +15,7 @@ const controller = {
         merchant: formData.get("merchant") as string,
         store_category: formData.get("store_category") as string,
         isActive: formData.get("isActive") == "true",
+        rating: 0,
       };
       if (file && file.size > 0) {
         // User uploaded a profile image
@@ -129,35 +130,73 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
-  getManyForMobile: async (c: Context)=>{
-    try{
-      const stores = await storeModel
-        .find()
-        .populate({
-          path: "merchant",
-          select: ["-profile", "-password"],
-        })
-        .populate({
-          path: "store_category",
-          select: "-image.data",
-        })
-        .select("-store_img.data")
-        .lean();
-      const count = stores.length;
+  getManyForMobile: async (c: Context) => {
+    try {
+      // const stores = await storeModel
+      //   .find()
+      //   .populate({
+      //     path: "merchant",
+      //     select: ["-profile", "-password"],
+      //   })
+      //   .populate({
+      //     path: "store_category",
+      //     select: "-image.data",
+      //   })
+      //   .select("-store_img.data")
+      //   .lean();
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
-      const formattedData = stores.map((el) => {
-        return {
-          ...el,
-          image_url: `${baseUrl}/api/stores/store-image/${el._id}`,
-        };
-      });
+      const stores = await storeModel.aggregate([
+        { $project: { store_img: 0 } },
+        { $addFields: { idAsString: { $toString: "$_id" } } },
+        {
+          $lookup: {
+            from: "customer_feedbacks",
+            localField: "idAsString",
+            foreignField: "store",
+            as: "feedbackData",
+          },
+        },
+        {
+          $addFields: {
+            totalFeedbacks: { $size: "$feedbackData" },
+            totalStars: { $sum: "$feedbackData.star" },
+            image_url: {
+              $concat: [
+                `${baseUrl}/api/stores/store-image/`,
+                { $toString: "$_id" },
+              ],
+            },
+          },
+        },
+        {
+          $addFields: {
+            averageStar: {
+              $cond: {
+                if: { $gt: ["$totalFeedbacks", 0] },
+                then: {
+                  $round: [{ $divide: ["$totalStars", "$totalFeedbacks"] }, 1],
+                },
+                else: 0,
+              },
+            },
+          },
+        },
+      ]);
+      // const count = stores.length;
+      // const url = new URL(c.req.url);
+      // const baseUrl = `${url.origin}`;
+      // const formattedData = stores.map((el) => {
+      //   return {
+      //     ...el,
+      //     image_url: `${baseUrl}/api/stores/store-image/${el._id}`,
+      //   };
+      // });
       return c.json({
-        list: formattedData,
-        total: count,
+        list: stores,
       });
-    }catch(e){
-      return c.json({error: e},500)
+    } catch (e) {
+      return c.json({ error: e }, 500);
     }
   },
   getDetailForAdmin: async (c: Context) => {

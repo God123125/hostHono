@@ -13,6 +13,7 @@ export const Store = z.object({
       length: z.number(),
     })
     .optional(),
+  rating: z.number(),
 });
 export type Store = z.infer<typeof Store>;
 const storeSchema = new Schema<Store>({
@@ -36,8 +37,11 @@ const storeSchema = new Schema<Store>({
   },
   merchant: {
     type: mongoose.Types.ObjectId,
-    ref: "merchants",
+    ref: "admins",
     required: true,
+  },
+  rating: {
+    type: Number,
   },
 });
 export const storeModel = mongoose.model<Store>("stores", storeSchema);
