@@ -27,23 +27,20 @@ const controller = {
           length: file.size,
         };
       } else {
-        const defaultImagePath = path.join(
-          process.cwd(),
-          "src",
-          "images",
-          "default_store_category.jpg",
-        );
-        try {
-          const defaultBuffer = await readFile(defaultImagePath);
-          body.store_img = {
-            filename: "default_store_category.jpg",
-            mimetype: "image/jpg",
-            data: defaultBuffer,
-            length: defaultBuffer.length,
-          };
-        } catch (error) {
-          console.log("Default image not found at:", defaultImagePath);
+        const imageUrl = `${process.env.APP_URL}/images/default_store_category.jpg`;
+        const response = await fetch(imageUrl);
+
+        if (!response.ok) {
+          console.log("Failed to fetch default image:", response.status);
         }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        body.store_img = {
+          filename: "default_store_category.jpg",
+          mimetype: "image/png",
+          data: buffer,
+          length: buffer.length,
+        };
       }
       const validated = Store.parse(body);
       const store = new storeModel(validated);

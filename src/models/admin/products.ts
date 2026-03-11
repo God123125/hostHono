@@ -18,7 +18,7 @@ export const Product = z.object({
       length: z.number(),
     })
     .optional(),
-  image_url: z.string().optional(),
+  // image_url: z.string().optional(),
   createdBy: z.string(),
 });
 export type Product = z.infer<typeof Product>;
@@ -65,10 +65,10 @@ const productSchema = new Schema<Product>(
       data: Buffer, // Buffer
       length: Number,
     },
-    image_url: {
-      type: String,
-      required: false,
-    },
+    // image_url: {
+    //   type: String,
+    //   required: false,
+    // },
     createdBy: {
       type: String,
       ref: "admins",

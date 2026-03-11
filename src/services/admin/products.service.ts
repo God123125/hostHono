@@ -4,6 +4,8 @@ import productModel from "../../models/admin/products.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
+import dotenv from "dotenv";
+dotenv.config();
 const controller = {
   create: async (c: Context) => {
     try {
@@ -17,39 +19,36 @@ const controller = {
         price: price,
         description: formData.get("description") as string,
         category: formData.get("category") as string,
-        isActive: formData.get("isActive") == "true" ? true : false,
+        isActive: true,
         discount: Number(formData.get("discount")),
         store: formData.get("store") as string,
         price_after_discount: price_after_discount,
         createdBy: c.get("user"),
       };
       if (file && file.size > 0) {
-        // User uploaded a profile image
         const buffer = await file.arrayBuffer();
-        productData.image_url = {
+        productData.image = {
+          // ✅ image
           filename: file.name,
           mimetype: file.type,
           data: Buffer.from(buffer),
           length: file.size,
         };
       } else {
-        const defaultImagePath = path.join(
-          process.cwd(),
-          "src",
-          "images",
-          "default-product.png",
-        );
-        try {
-          const defaultBuffer = await readFile(defaultImagePath);
-          productData.image = {
-            filename: "default_store_category.jpg",
-            mimetype: "image/jpg",
-            data: defaultBuffer,
-            length: defaultBuffer.length,
-          };
-        } catch (error) {
-          console.log("Default image not found at:", defaultImagePath);
+        const imageUrl = `${process.env.APP_URL}/images/default-product.png`;
+        const response = await fetch(imageUrl);
+
+        if (!response.ok) {
+          console.log("Failed to fetch default image:", response.status);
         }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        productData.image = {
+          filename: "default-product.png",
+          mimetype: "image/png",
+          data: buffer,
+          length: buffer.length,
+        };
       }
       const validated = Product.parse(productData);
       await productModel.create(validated);
@@ -93,6 +92,7 @@ const controller = {
         total: total,
       });
     } catch (e) {
+      console.log(e);
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
       }
@@ -103,15 +103,19 @@ const controller = {
     try {
       const id = c.req.param("id");
       const img = await productModel.findById(id).select("image");
+
       if (img && img.image && img.image.data) {
-        return c.body(img!.image.data, 200, {
-          "Content-Type": img!.image.mimetype,
-        });
-      } else {
-        return c.json({
-          msg: "Image not found",
+        // ✅ Convert Buffer/Binary from MongoDB to proper binary
+        const imageBuffer = Buffer.isBuffer(img.image.data)
+          ? img.image.data
+          : Buffer.from(img.image.data.buffer); // MongoDB stores as Binary
+
+        return c.body(imageBuffer, 200, {
+          "Content-Type": img.image.mimetype,
         });
       }
+
+      return c.json({ msg: "Image not found" }, 404);
     } catch (e) {
       return c.json({ error: e }, 500);
     }

@@ -59,12 +59,19 @@ export const mobileUserController = {
       );
       let profile = {};
       try {
-        const defaultBuffer = await readFile(defaultImagePath);
+        const imageUrl = `${process.env.APP_URL}/images/default-product.png`;
+        const response = await fetch(imageUrl);
+
+        if (!response.ok) {
+          console.log("Failed to fetch default image:", response.status);
+        }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
         profile = {
           filename: "default-profile.png",
-          mimetype: "image/jpg",
-          data: defaultBuffer,
-          length: defaultBuffer.length,
+          mimetype: "image/png",
+          data: buffer,
+          length: buffer.length,
         };
       } catch (error) {
         console.log("Default image not found at:", defaultImagePath);

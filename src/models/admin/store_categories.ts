@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import * as z from "zod";
 export const storeCategory = z.object({
   name: z.string(),
-  des: z.string(),
+  description: z.string(),
   image: z.object({
     filename: z.string(),
     mimetype: z.string(),
@@ -18,7 +18,7 @@ const storeCategorySchema = new Schema<storeCategory>(
       type: String,
       required: true,
     },
-    des: {
+    description: {
       type: String,
       required: true,
     },

@@ -9,10 +9,11 @@ import { cors } from "hono/cors";
 import honoRoutes from "./routes/routers.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 import chatRoute from "./routes/admin/customer-chat.route.js";
+import { serveStatic } from "@hono/node-server/serve-static";
 const app = new Hono();
 const PORT = process.env.PORT || 3000;
 const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
-
+app.use("/images/*", serveStatic({ root: "./public" }));
 app.use("*", logger());
 app.use("*", cors());
 // app.get(
@@ -36,7 +37,6 @@ app.route("/test", testRoutes);
 app.route("/api", honoRoutes);
 app.route("/api/chat", chatRoute(upgradeWebSocket));
 async function start() {
-
   const server = serve(
     {
       fetch: app.fetch,
@@ -46,6 +46,12 @@ async function start() {
       console.log(`Server is running on http://localhost:${info.port}`);
     },
   );
+  server.on("error", (err: any) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`❌ Port ${PORT} is already in use. Try a different port.`);
+      process.exit(1);
+    }
+  });
   injectWebSocket(server);
 }
 

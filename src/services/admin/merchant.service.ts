@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import * as z from "zod";
 import bcrpyt from "bcrypt";
 import jwt from "jsonwebtoken";
-import {adminModel } from "../../models/admin/merchants.js";
+import { adminModel } from "../../models/admin/merchants.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
@@ -33,7 +33,7 @@ export const adminController = {
         phone: (bodyData["phone"] as string) || "",
         address: (bodyData["address"] as string) || "",
         commission_rate: Number(bodyData["commission_rate"]) || 0,
-        isActive: true
+        isActive: true,
       };
 
       // Handle profile as File from form data (like super admin)
@@ -48,23 +48,20 @@ export const adminController = {
       }
       // If no profile provided, use default image
       if (!body.profile) {
-        const defaultImagePath = path.join(
-          process.cwd(),
-          "src",
-          "images",
-          "default-profile.png",
-        );
-        try {
-          const defaultBuffer = await readFile(defaultImagePath);
-          body.profile = {
-            filename: "default-profile.png",
-            mimetype: "image/png",
-            data: defaultBuffer,
-            length: defaultBuffer.length,
-          };
-        } catch (error) {
-          console.log("Default image not found at:", defaultImagePath);
+        const imageUrl = `${process.env.APP_URL}/images/default-profile.png`;
+        const response = await fetch(imageUrl);
+
+        if (!response.ok) {
+          console.log("Failed to fetch default image:", response.status);
         }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        body.profile = {
+          filename: "default-product.png",
+          mimetype: "image/png",
+          data: buffer,
+          length: buffer.length,
+        };
       }
 
       await adminModel.create(body);
@@ -126,7 +123,7 @@ export const adminController = {
           ? `${baseUrl}/api/merchants/profile/${user._id}`
           : null,
       };
-      if(store){
+      if (store) {
         userBody.store = store?._id;
       }
       const compare = await bcrpyt.compare(password, user.password);

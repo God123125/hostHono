@@ -11,8 +11,8 @@ export const storeCategoryController = {
       const file = formData.get("image") as File;
       const body: any = {
         name: formData.get("name") as string,
-        des: formData.get("des") as string,
-        isActive: formData.get("isActive") == "true",
+        description: formData.get("description") as string,
+        isActive: true,
       };
       if (file && file.size > 0) {
         // User uploaded a profile image
@@ -24,29 +24,27 @@ export const storeCategoryController = {
           length: file.size,
         };
       } else {
-        const defaultImagePath = path.join(
-          process.cwd(),
-          "src",
-          "images",
-          "default_store_category.jpg",
-        );
-        try {
-          const defaultBuffer = await readFile(defaultImagePath);
-          body.image = {
-            filename: "default_store_category.jpg",
-            mimetype: "image/jpg",
-            data: defaultBuffer,
-            length: defaultBuffer.length,
-          };
-        } catch (error) {
-          console.log("Default image not found at:", defaultImagePath);
+        const imageUrl = `${process.env.APP_URL}/images/default_store_category.jpg`;
+        const response = await fetch(imageUrl);
+
+        if (!response.ok) {
+          console.log("Failed to fetch default image:", response.status);
         }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        body.image = {
+          filename: "default_store_category.jpg",
+          mimetype: "image/png",
+          data: buffer,
+          length: buffer.length,
+        };
       }
-      const created = await storeCategoryModel.create(body);
+      await storeCategoryModel.create(body);
       return c.json({
         msg: "Store category created successfully!",
       });
     } catch (e) {
+      console.log(e);
       if (e instanceof z.ZodError) {
         return c.json({ error: e }, 400);
       }
