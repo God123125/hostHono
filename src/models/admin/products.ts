@@ -71,7 +71,7 @@ const productSchema = new Schema<Product>(
     },
     createdBy: {
       type: String,
-      ref: "merchants",
+      ref: "admins",
       required: true,
     },
   },
