@@ -145,7 +145,6 @@ export const mobileUserController = {
       const { email, password } = await c.req.json();
       const user = await mobileUserModel.findOne({ email });
       if (!user) return c.json({ message: "Unauthenticated" }, 401);
-      if (!user) return c.json({ message: "Unauthenticated" }, 401);
       const compare = await bcrpyt.compare(password, user!.password);
       if (!compare) return c.json({ message: "Wrong Password" }, 401);
       const token = getToken(user._id.toString()!);
