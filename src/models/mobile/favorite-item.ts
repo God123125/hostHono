@@ -19,6 +19,6 @@ const favoriteItemSchema = new Schema<FavoriteItem>(
   { timestamps: true },
 );
 export const favoriteItemModel = mongoose.model<FavoriteItem>(
-  "carts",
+  "favorite_items",
   favoriteItemSchema,
 );

@@ -4,7 +4,6 @@ import productModel from "../../models/admin/products.js";
 import * as z from "zod";
 import path from "path";
 import { readFile } from "fs/promises";
-import mongoose, { Types } from "mongoose";
 const controller = {
   create: async (c: Context) => {
     try {
