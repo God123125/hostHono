@@ -9,11 +9,9 @@ import { cors } from "hono/cors";
 import honoRoutes from "./routes/routers.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 import chatRoute from "./routes/admin/customer-chat.route.js";
-import { serveStatic } from "@hono/node-server/serve-static";
 const app = new Hono();
 const PORT = process.env.PORT || 3000;
 const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
-app.use("/images/*", serveStatic({ root: "./public" }));
 app.use("*", logger());
 app.use("*", cors());
 // app.get(

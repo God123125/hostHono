@@ -47,6 +47,7 @@ const controller = {
         msg: "Feedback done!",
       });
     } catch (e) {
+      console.log(e);
       if (e instanceof z.ZodError) {
         return c.json({ error: e }, 400);
       }
@@ -75,6 +76,7 @@ const controller = {
         return {
           ...el,
           feedback_img: `${baseUrl}/api/feedbacks/img/${el._id}`,
+          user_profile: `${baseUrl}/api/mobile-users/profile/${(el.user as any)._id}`,
         };
       });
       return c.json({

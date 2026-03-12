@@ -85,7 +85,7 @@ export const mobileUserController = {
 
     if (Date.now() > temp.expire) return c.json({ msg: "Code expired" }, 400);
     let profile = {};
-    const imageUrl = `${process.env.APP_URL}/images/default-product.png`;
+    const imageUrl = `${process.env.APP_URL}/images/default-profile.png`;
     const response = await fetch(imageUrl);
 
     if (!response.ok) {
