@@ -75,8 +75,8 @@ const controller = {
       const formattedFeedback = feedbacks.map((el) => {
         return {
           ...el,
-          feedback_img: `${baseUrl}/api/feedbacks/img/${el._id}`,
-          user_profile: `${baseUrl}/api/mobile-users/profile/${(el.user as any)._id}`,
+          feedback_img: `${baseUrl}/api/feedbacks/img/${el?._id}`,
+          user_profile: `${baseUrl}/api/mobile-users/profile/${(el.user as any)?._id}`,
         };
       });
       return c.json({

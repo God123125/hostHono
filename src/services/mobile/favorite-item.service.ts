@@ -33,7 +33,7 @@ export const favoriteItemController = {
       const formattedData = data.map((el) => {
         return {
           ...el,
-          img_url: `${baseUrl}/api/products/img/${el._id}`,
+          img_url: `${baseUrl}/api/products/img/${el?._id}`,
         };
       });
       return c.json({ list: formattedData });

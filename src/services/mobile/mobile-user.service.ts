@@ -157,7 +157,7 @@ export const mobileUserController = {
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
         profile: user.profile
-          ? `${baseUrl}/api/mobile-users/profile/${user._id}`
+          ? `${baseUrl}/api/mobile-users/profile/${user?._id}`
           : null,
       };
 
