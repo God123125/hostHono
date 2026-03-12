@@ -174,7 +174,7 @@ export const adminController = {
         phone: user.phone,
         role: user.role,
         profile_url: user.profile
-          ? `${baseUrl}/api/merchants/profile/${user._id}`
+          ? `${baseUrl}/api/admins/profile/${user._id}`
           : null,
       };
       if (store) {
@@ -182,7 +182,7 @@ export const adminController = {
       }
       const compare = await bcrpyt.compare(password, user.password);
       if (!compare) return c.json({ message: "Wrong password!" }, 401);
-      const token = getToken(user._id);
+      const token = getToken(user._id, userBody.store);
       const expireDate = getExpirationDate(token);
       return c.json({
         user: userBody,
@@ -232,7 +232,7 @@ export const adminController = {
             // merchantIdStr: { $toString: "$_id" },
             profile_url: {
               $concat: [
-                `${baseUrl}/api/merchants/profile/`,
+                `${baseUrl}/api/admins/profile/`,
                 { $toString: "$_id" },
               ],
             },
@@ -596,12 +596,12 @@ export const adminController = {
     }
   },
 };
-function getToken(userId: mongoose.Types.ObjectId) {
+function getToken(userId: mongoose.Types.ObjectId, store: string) {
   const secret = process.env.JWT_KEY;
   if (!secret) {
     throw new Error("JWT_KEY is not defined in environment variables.");
   }
-  return jwt.sign({ user: userId }, secret, {
+  return jwt.sign({ user: userId, store: store }, secret, {
     expiresIn: "24h",
   });
 }

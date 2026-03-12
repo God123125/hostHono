@@ -340,15 +340,10 @@ const controller = {
     try {
       const id = c.req.param("id");
       const body = await c.req.json();
-      const hasMerchant = await storeModel.findOne({ merchant: body.merchant });
-      if (hasMerchant) {
-        return c.json({ msg: "This merchant already has a store!" }, 400);
-      } else {
-        await storeModel.findByIdAndUpdate(id, body, { new: true });
-        return c.json({
-          msg: "Store updated successfully!",
-        });
-      }
+      await storeModel.findByIdAndUpdate(id, body, { new: true });
+      return c.json({
+        msg: "Store updated successfully!",
+      });
     } catch (e) {
       console.log(e);
       if (e instanceof z.ZodError) {

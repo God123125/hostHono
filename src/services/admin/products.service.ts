@@ -72,7 +72,7 @@ const controller = {
       const query: any = {};
       const user = await c.get("user");
       query.createdBy = user;
-      query.store = c.get("store").toString();
+      query.store = await c.get("store");
       if (category) query.category = category.toString();
       const products = await productModel
         .find(query)
@@ -298,7 +298,7 @@ const controller = {
                 qty: "$qty",
                 isActive: "$isActive",
                 discount: "$discount",
-                totalPrice: "$totalPrice",
+                price_after_discount: "$price_after_discount",
                 store: "$store",
                 createdAt: "$createdAt",
                 updatedAt: "$updatedAt",

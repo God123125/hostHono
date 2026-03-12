@@ -22,7 +22,7 @@ const categoryController = {
   },
   getManyForAdmin: async (c: Context) => {
     try {
-      const store_id = c.get("store");
+      const store_id = c.get("store")?.toString();
       const categories = await categoryModel.find({ store_id: store_id });
       if (categories) {
         return c.json({

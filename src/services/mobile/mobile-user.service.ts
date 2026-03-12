@@ -299,7 +299,7 @@ export const mobileUserController = {
   search: async (c: Context) => {
     try {
       const q = decodeURIComponent(c.req.query("q") as string);
-      const data = mobileUserModel.find({
+      const data = await mobileUserModel.find({
         name: { $regex: q.toString().trim(), $options: "i" },
       });
       return c.json({
