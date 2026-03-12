@@ -1,5 +1,8 @@
+import dns from "dns";
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 import dotenv from "dotenv";
 dotenv.config();
+
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import testRoutes from "./routes/test.route.js";

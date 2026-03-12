@@ -46,13 +46,14 @@ const controller = {
       const baseUrlForAds = `${url.origin}${url.pathname}`;
       const adsWithStoreImage = ads.map((el: any) => ({
         ...el,
-        store_img: `${baseUrl}/store-image/${el.store._id}`,
-        ad_img: `${baseUrlForAds}/img/${el._id}`,
+        store_img: `${baseUrl}/store-image/${el.store?._id}`,
+        ad_img: `${baseUrlForAds}/img/${el?._id}`,
       }));
       return c.json({
         list: adsWithStoreImage,
       });
     } catch (e) {
+      console.log(e)
       return c.json({ error: e }, 500);
     }
   },
