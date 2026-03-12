@@ -8,7 +8,7 @@ import cartRoute from "./mobile/cart.route.js";
 import orderRoute from "./mobile/order.route.js";
 import reportRoute from "./users/monthly-report.route.js";
 import storeCategoryRoute from "./users/store_categories.route.js";
-import advertisingRoute from "./users/advertising.route.js";
+import advertisingRoute from "./admin/advertising.route.js";
 import productDocRoute from "./users/product-document.route.js";
 import storeCateDocRoute from "./users/store-categories-document.route.js";
 import storeDocRoute from "./users/store-document.route.js";
