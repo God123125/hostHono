@@ -2,52 +2,63 @@ import type { Context } from "hono";
 import { storeModel } from "../../models/admin/stores.js";
 import { Store } from "../../models/admin/stores.js";
 import * as z from "zod";
-import path from "path";
-import { readFile } from "fs/promises";
 import mongoose from "mongoose";
 const controller = {
   create: async (c: Context) => {
     try {
       const formData = await c.req.formData();
       const file = formData.get("store_img") as File;
-      const body: Store = {
-        name: formData.get("name") as string,
-        merchant: formData.get("merchant") as string,
-        store_category: formData.get("store_category") as string,
-        isActive: formData.get("isActive") == "true",
-        rating: 0,
-      };
-      if (file && file.size > 0) {
-        // User uploaded a profile image
-        const buffer = await file.arrayBuffer();
-        body.store_img = {
-          filename: file.name,
-          mimetype: file.type,
-          data: Buffer.from(buffer),
-          length: file.size,
-        };
-      } else {
-        const imageUrl = `${process.env.APP_URL}/images/default_store_category.jpg`;
-        const response = await fetch(imageUrl);
-
-        if (!response.ok) {
-          console.log("Failed to fetch default image:", response.status);
-        }
-
-        const buffer = Buffer.from(await response.arrayBuffer());
-        body.store_img = {
-          filename: "default_store_category.jpg",
-          mimetype: "image/png",
-          data: buffer,
-          length: buffer.length,
-        };
-      }
-      const validated = Store.parse(body);
-      const store = new storeModel(validated);
-      await store.save();
-      return c.json({
-        msg: "Store created successfully!",
+      const hasMerchant = await storeModel.findOne({
+        merchant: formData.get("merchant"),
       });
+      if (hasMerchant) {
+        return c.json({ msg: "This merchant already has a store!" }, 400);
+      } else {
+        const body: Store = {
+          name: formData.get("name") as string,
+          merchant: formData.get("merchant") as string,
+          store_category: formData.get("store_category") as string,
+          isActive: formData.get("isActive") == "true" ? true : false,
+          rating: 0,
+          is_delivery_fee:
+            formData.get("is_delivery_fee") == "true" ? true : false,
+          address: {
+            latitude: formData.get("lat") as string,
+            longitude: formData.get("long") as string,
+          },
+        };
+        if (file && file.size > 0) {
+          // User uploaded a profile image
+          const buffer = await file.arrayBuffer();
+          body.store_img = {
+            filename: file.name,
+            mimetype: file.type,
+            data: Buffer.from(buffer),
+            length: file.size,
+          };
+        } else {
+          const imageUrl = `${process.env.APP_URL}/images/default_store_category.jpg`;
+          const response = await fetch(imageUrl);
+
+          if (!response.ok) {
+            console.log("Failed to fetch default image:", response.status);
+          }
+
+          const buffer = Buffer.from(await response.arrayBuffer());
+          body.store_img = {
+            filename: "default_store_category.jpg",
+            mimetype: "image/png",
+            data: buffer,
+            length: buffer.length,
+          };
+        }
+        const validated = Store.parse(body);
+        const store = new storeModel(validated);
+        await store.save();
+        return c.json({
+          msg: "Store created successfully!",
+        });
+      }
     } catch (e) {
       if (e instanceof z.ZodError) {
         return c.json(e, 400);
@@ -193,7 +204,7 @@ const controller = {
         },
         {
           $lookup: {
-            from: "merchants",
+            from: "admins",
             localField: "merchantObjId",
             foreignField: "_id",
             as: "merchant",
@@ -280,7 +291,7 @@ const controller = {
             },
             merchant_profile: {
               $concat: [
-                `${baseUrl}/api/merchants/profile/`,
+                `${baseUrl}/api/admins/profile/`,
                 { $toString: "$merchant._id" },
               ],
             },
@@ -329,10 +340,15 @@ const controller = {
     try {
       const id = c.req.param("id");
       const body = await c.req.json();
-      await storeModel.findByIdAndUpdate(id, body, { new: true });
-      return c.json({
-        msg: "Store updated successfully!",
-      });
+      const hasMerchant = await storeModel.findOne({ merchant: body.merchant });
+      if (hasMerchant) {
+        return c.json({ msg: "This merchant already has a store!" }, 400);
+      } else {
+        await storeModel.findByIdAndUpdate(id, body, { new: true });
+        return c.json({
+          msg: "Store updated successfully!",
+        });
+      }
     } catch (e) {
       console.log(e);
       if (e instanceof z.ZodError) {

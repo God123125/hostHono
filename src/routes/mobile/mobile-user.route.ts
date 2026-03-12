@@ -5,6 +5,7 @@ import { mobileUser } from "../../models/mobile/mobile-user.js";
 const routes = new Hono();
 routes.get("/", mobileUserController.getUsers);
 routes.get("/personal-info", verifyToken, mobileUserController.getById);
+routes.get("/search", mobileUserController.search);
 routes.get("/profile/:id", mobileUserController.getUserProfile);
 routes.post("/register", mobileUserController.requestRegister);
 routes.post("/verify", mobileUserController.verifyRegister);

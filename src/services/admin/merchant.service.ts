@@ -9,6 +9,7 @@ import { orderModel } from "../../models/mobile/order.js";
 import { storeModel } from "../../models/admin/stores.js";
 import mongoose from "mongoose";
 import { commissionModel } from "../../models/admin/commission.js";
+import { UserRole } from "../../enum/user-role.enum.js";
 export const adminController = {
   createMerchant: async (c: Context) => {
     try {
@@ -29,7 +30,7 @@ export const adminController = {
         username: bodyData["username"] as string,
         email: bodyData["email"] as string,
         password: hashPass,
-        role: bodyData["role"] as string,
+        role: (bodyData["role"] as string) || "MERCHANT",
         phone: (bodyData["phone"] as string) || "",
         address: (bodyData["address"] as string) || "",
         commission_rate: Number(bodyData["commission_rate"]) || 0,
@@ -70,9 +71,15 @@ export const adminController = {
       return c.json({ error: e.message || e }, 500);
     }
   },
+  // for getting user option
   getMany: async (c: Context) => {
     try {
       const merchants = await adminModel.aggregate([
+        {
+          $match: {
+            role: { $ne: "SUPER_ADMIN" }, // ✅ filter out SUPER_ADMIN
+          },
+        },
         {
           $project: {
             profile: 0,
@@ -88,7 +95,7 @@ export const adminController = {
         },
         {
           $match: {
-            stores: { $size: 0 }, // merchants with NO store
+            stores: { $size: 0 },
           },
         },
         {
@@ -102,6 +109,53 @@ export const adminController = {
       });
     } catch (e) {
       return c.json({ error: e }, 500);
+    }
+  },
+  // get many users
+  getManyUserForDisplay: async (c: Context) => {
+    try {
+      const merchants = await adminModel
+        .find({
+          role: { $ne: UserRole.SuperAdmin },
+        })
+        .lean();
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedMerchants = merchants.map((el) => {
+        return {
+          ...el,
+          profile_url: `${baseUrl}/api/admins/profile/${el._id}`,
+        };
+      });
+      return c.json({
+        list: formattedMerchants,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getById: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return c.json({ message: "Invalid id" }, 400);
+      }
+      const user: any = await adminModel
+        .findById(id)
+        .select(["-password", "-profile.data"])
+        .lean();
+
+      if (!user) return c.json({ message: "Not Found" }, 404);
+
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const formattedUser = {
+        ...user,
+        profile_url: `${baseUrl}/api/admins/profile/${user._id}`,
+      };
+      return c.json(formattedUser);
+    } catch (e: any) {
+      return c.json({ error: e.message || e }, 500);
     }
   },
   login: async (c: Context) => {
@@ -463,7 +517,7 @@ export const adminController = {
       },
       {
         $lookup: {
-          from: "merchants",
+          from: "admins",
           localField: "merchant",
           foreignField: "_id",
           as: "merchantData",

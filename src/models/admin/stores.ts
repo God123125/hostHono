@@ -14,6 +14,11 @@ export const Store = z.object({
     })
     .optional(),
   rating: z.number(),
+  address: z.object({
+    latitude: z.string(),
+    longitude: z.string(),
+  }),
+  is_delivery_fee: z.boolean(),
 });
 export type Store = z.infer<typeof Store>;
 const storeSchema = new Schema<Store>({
@@ -42,6 +47,13 @@ const storeSchema = new Schema<Store>({
   },
   rating: {
     type: Number,
+  },
+  address: {
+    latitude: String,
+    longitude: String,
+  },
+  is_delivery_fee: {
+    type: Boolean,
   },
 });
 export const storeModel = mongoose.model<Store>("stores", storeSchema);

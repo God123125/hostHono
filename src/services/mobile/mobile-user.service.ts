@@ -51,31 +51,6 @@ export const mobileUserController = {
 
       const code = Math.floor(100000 + Math.random() * 900000);
       const expire = Date.now() + 1000 * 60 * 1; // 5 mins
-      const defaultImagePath = path.join(
-        process.cwd(),
-        "src",
-        "images",
-        "default-profile.png",
-      );
-      let profile = {};
-      try {
-        const imageUrl = `${process.env.APP_URL}/images/default-product.png`;
-        const response = await fetch(imageUrl);
-
-        if (!response.ok) {
-          console.log("Failed to fetch default image:", response.status);
-        }
-
-        const buffer = Buffer.from(await response.arrayBuffer());
-        profile = {
-          filename: "default-profile.png",
-          mimetype: "image/png",
-          data: buffer,
-          length: buffer.length,
-        };
-      } catch (error) {
-        console.log("Default image not found at:", defaultImagePath);
-      }
       await tempUserModel.findOneAndUpdate(
         { email },
         {
@@ -86,7 +61,6 @@ export const mobileUserController = {
           code,
           expire,
           resendCount: 0,
-          profile,
         },
         { upsert: true }, // use this when can't find any so that it will create a new one
       );
@@ -110,12 +84,27 @@ export const mobileUserController = {
     if (temp.code != code) return c.json({ msg: "Invalid code" }, 400);
 
     if (Date.now() > temp.expire) return c.json({ msg: "Code expired" }, 400);
+    let profile = {};
+    const imageUrl = `${process.env.APP_URL}/images/default-product.png`;
+    const response = await fetch(imageUrl);
 
+    if (!response.ok) {
+      console.log("Failed to fetch default image:", response.status);
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    profile = {
+      filename: "default-profile.png",
+      mimetype: "image/png",
+      data: buffer,
+      length: buffer.length,
+    };
     await mobileUserModel.create({
       email: temp.email,
       password: temp.password,
       phone: temp.phone,
       name: temp.name,
+      profile: profile,
     });
 
     await tempUserModel.deleteOne({ email });
@@ -305,6 +294,19 @@ export const mobileUserController = {
       });
     } catch (e) {
       return c.json({ error: e }, 500);
+    }
+  },
+  search: async (c: Context) => {
+    try {
+      const q = decodeURIComponent(c.req.query("q") as string);
+      const data = mobileUserModel.find({
+        name: { $regex: q.toString().trim(), $options: "i" },
+      });
+      return c.json({
+        list: data,
+      });
+    } catch (e) {
+      console.log(e);
     }
   },
   updatePassword: async (c: Context) => {

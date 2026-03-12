@@ -11,7 +11,7 @@ const commissionSchema = new Schema<Commision>(
   {
     merchant: {
       type: String,
-      required: true,
+      ref: "admins",
     },
     amount: {
       type: Number,
