@@ -61,7 +61,7 @@ export const storeCategoryController = {
       const baseUrl = `${url.origin}`;
       const formattedCategories = categories.map((el) => ({
         ...el,
-        image_url: `${baseUrl}/api/store-categories/img/${el._id}`,
+        image_url: `${baseUrl}/api/store-categories/img/${el?._id}`,
       }));
       return c.json({
         list: formattedCategories,

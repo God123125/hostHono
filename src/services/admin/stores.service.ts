@@ -91,7 +91,7 @@ const controller = {
       const formattedData = stores.map((el) => {
         return {
           ...el,
-          image_url: `${baseUrl}/api/stores/store-image/${el._id}`,
+          image_url: `${baseUrl}/api/stores/store-image/${el?._id}`,
         };
       });
       return c.json({
@@ -126,7 +126,7 @@ const controller = {
       const formattedData = stores.map((el) => {
         return {
           ...el,
-          image_url: `${baseUrl}/api/stores/store-image/${el._id}`,
+          image_url: `${baseUrl}/api/stores/store-image/${el?._id}`,
         };
       });
       return c.json({

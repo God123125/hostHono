@@ -124,7 +124,7 @@ export const adminController = {
       const formattedMerchants = merchants.map((el) => {
         return {
           ...el,
-          profile_url: `${baseUrl}/api/admins/profile/${el._id}`,
+          profile_url: `${baseUrl}/api/admins/profile/${el?._id}`,
         };
       });
       return c.json({
@@ -151,7 +151,7 @@ export const adminController = {
       const baseUrl = `${url.origin}`;
       const formattedUser = {
         ...user,
-        profile_url: `${baseUrl}/api/admins/profile/${user._id}`,
+        profile_url: `${baseUrl}/api/admins/profile/${user?._id}`,
       };
       return c.json(formattedUser);
     } catch (e: any) {
@@ -174,7 +174,7 @@ export const adminController = {
         phone: user.phone,
         role: user.role,
         profile_url: user.profile
-          ? `${baseUrl}/api/admins/profile/${user._id}`
+          ? `${baseUrl}/api/admins/profile/${user?._id}`
           : null,
       };
       if (store) {

@@ -84,7 +84,7 @@ const controller = {
       const baseUrl = `${url.origin}`; //origin yor tah url derm ot yor query te
       const productWithImage = products.map((el) => ({
         ...el,
-        image_url: `${baseUrl}/api/products/img/${el._id}`,
+        image_url: `${baseUrl}/api/products/img/${el?._id}`,
       }));
       const total = productWithImage.length;
       return c.json({
@@ -230,7 +230,7 @@ const controller = {
       const formattedData = data.map((el) => {
         return {
           ...el,
-          image_url: `${baseUrl}/api/products/img/${el._id}`,
+          image_url: `${baseUrl}/api/products/img/${el?._id}`,
         };
       });
       return c.json({
@@ -355,7 +355,7 @@ const controller = {
       const baseUrl = `${url.origin}`; //origin yor tah url derm ot yor query te
       const productWithImage = products.map((el) => ({
         ...el,
-        image_url: `${baseUrl}/api/products/img/${el._id}`,
+        image_url: `${baseUrl}/api/products/img/${el?._id}`,
       }));
       const total = productWithImage.length;
       return c.json({
