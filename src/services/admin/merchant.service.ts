@@ -211,7 +211,7 @@ export const adminController = {
       return c.json({ error: e }, 500);
     }
   },
-  getMerchantDetail: async (c: Context) => {
+  getAdminDetail: async (c: Context) => {
     try {
       // const id = c.req.param("id");
       const id = c.get("user");
@@ -270,27 +270,14 @@ export const adminController = {
   updateAccountInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const {
-        name,
-        username,
-        email,
-        password,
-        role,
-        phone,
-        isActive,
-        address,
-      } = await c.req.json();
-
-      const hashedPassword = password
-        ? await bcrpyt.hash(password, await bcrpyt.genSalt(10))
-        : undefined;
+      const { fullname, username, email, role, phone, isActive, address } =
+        await c.req.json();
 
       const body = Object.fromEntries(
         Object.entries({
-          name,
+          fullname,
           username,
           email,
-          password: hashedPassword,
           role,
           phone,
           address,
@@ -304,6 +291,25 @@ export const adminController = {
     } catch (e) {
       console.log(e);
       return c.json({ error: e }, e instanceof z.ZodError ? 400 : 500);
+    }
+  },
+  updatePassword: async (c: Context) => {
+    try {
+      const { email, oldPass, newPass } = await c.req.json();
+      const hasEmail = await adminModel.findOne({ email: email });
+      if (!hasEmail) return c.json({ msg: "Email not found!" }, 400);
+      const compare = await bcrpyt.compare(oldPass, hasEmail.password);
+      if (!compare) return c.json({ msg: "Old password is incorrect!" });
+      const hashedPassword = newPass
+        ? await bcrpyt.hash(newPass, await bcrpyt.genSalt(10))
+        : undefined;
+      const body = {
+        password: hashedPassword,
+      };
+      await adminModel.findByIdAndUpdate(hasEmail._id, body, { new: true });
+      return c.json({ msg: "User password updated successfully!" });
+    } catch (e) {
+      console.log(e);
     }
   },
   updateProfile: async (c: Context) => {
