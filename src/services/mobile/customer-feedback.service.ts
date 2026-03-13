@@ -56,7 +56,7 @@ const controller = {
   },
   getMany: async (c: Context) => {
     try {
-      const store = c.get("store");
+      const store = c.get("store") ? c.get("store") : c.req.query("store");
       const query: any = {};
       if (store) query.store = store;
       const feedbacks = await feedbackModel
@@ -121,6 +121,87 @@ const controller = {
           $unwind: { path: "$user", preserveNullAndEmptyArrays: true },
         },
         ...(searchMatch ? [searchMatch] : []),
+        {
+          $project: {
+            img_feedback: 0,
+            "user.address": 0,
+            "user.password": 0,
+          },
+        },
+      ]);
+      return c.json({
+        list: data,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  searchForAdmin: async (c: Context) => {
+    try {
+      const searchQuery = c.req.query("q")
+        ? decodeURIComponent(c.req.query("q") as string)
+        : null;
+
+      const searchMatch = searchQuery
+        ? {
+            $match: {
+              $or: [
+                { "user.name": { $regex: searchQuery, $options: "i" } },
+                { star: { $eq: Number(searchQuery) } },
+              ],
+            },
+          }
+        : null;
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
+      const data = await feedbackModel.aggregate([
+        {
+          $addFields: {
+            userObjId: { $toObjectId: "$user" },
+            storeObjId: { $toObjectId: "$store" }, // convert store string → ObjectId
+          },
+        },
+        {
+          $lookup: {
+            from: "mobile_users",
+            localField: "userObjId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: { path: "$user", preserveNullAndEmptyArrays: true },
+        },
+
+        ...(searchMatch ? [searchMatch] : []),
+
+        {
+          $lookup: {
+            from: "stores",
+            localField: "storeObjId",
+            foreignField: "_id",
+            as: "store",
+          },
+        },
+
+        {
+          $unwind: { path: "$store", preserveNullAndEmptyArrays: true },
+        },
+
+        {
+          $addFields: {
+            feedback_img: {
+              $concat: [`${baseUrl}/api/feedbacks/img/`, { $toString: "$_id" }],
+            },
+            user_profile: {
+              $concat: [
+                `${baseUrl}/api/mobile-users/profile/`,
+                { $toString: "$user._id" },
+              ],
+            },
+          },
+        },
+
         {
           $project: {
             img_feedback: 0,

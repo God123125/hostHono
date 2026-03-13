@@ -15,7 +15,7 @@ const controller = {
           data: Buffer.from(buffer),
           length: file.size,
         },
-        des: formData.get("des") as string,
+        description: formData.get("description") as string,
         isActive: true,
         store: formData.get("store") as string,
       };
@@ -35,7 +35,7 @@ const controller = {
     try {
       const ads = await advertisingModel
         .find()
-        .select("-image.data")
+        .select("-image")
         .populate({
           path: "store",
           select: "name",
@@ -46,14 +46,14 @@ const controller = {
       const baseUrlForAds = `${url.origin}${url.pathname}`;
       const adsWithStoreImage = ads.map((el: any) => ({
         ...el,
-        store_img: `${baseUrl}/store-image/${el.store?._id}`,
+        store_img: `${baseUrl}/store-image/${el?.store}`,
         ad_img: `${baseUrlForAds}/img/${el?._id}`,
       }));
       return c.json({
         list: adsWithStoreImage,
       });
     } catch (e) {
-      console.log(e)
+      console.log(e);
       return c.json({ error: e }, 500);
     }
   },
@@ -77,9 +77,17 @@ const controller = {
   getById: async (c: Context) => {
     try {
       const id = c.req.param("id");
-      const ad = await advertisingModel.findById(id).select("-image.data");
-      if (ad) {
-        return c.json(ad);
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}/api/stores`;
+      const baseUrlForAds = `${url.origin}`;
+      const ad = await advertisingModel.findById(id).select("-image").lean();
+      const customAd = {
+        ...ad,
+        store_img: `${baseUrl}/store-image/${ad?.store}`,
+        ad_img: `${baseUrlForAds}/api/advertisings/img/${id}`,
+      };
+      if (customAd) {
+        return c.json(customAd);
       } else {
         return c.json({});
       }
@@ -87,22 +95,19 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
-  update: async (c: Context) => {
+  updateImage: async (c: Context) => {
     try {
       const id = c.req.param("id");
       const formData = await c.req.formData();
       const file = formData.get("image") as File;
       const buffer = await file.arrayBuffer();
-      const body: advertising = {
+      const body: Partial<advertising> = {
         image: {
           filename: file.name,
           mimetype: file.type,
           data: Buffer.from(buffer),
           length: file.size,
         },
-        des: formData.get("des") as string,
-        isActive: formData.get("isActive") == "true",
-        store: formData.get("store") as string,
       };
       const updated = await advertisingModel
         .findByIdAndUpdate(id, body, {
@@ -117,6 +122,23 @@ const controller = {
       if (e instanceof z.ZodError) {
         return c.json({ error: e }, 400);
       }
+      return c.json({ error: e }, 500);
+    }
+  },
+  updateInfo: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const req = await c.req.json();
+      const body = {
+        description: req.description,
+        isActive: req.isActive,
+        store: req.store,
+      };
+      await advertisingModel.findByIdAndUpdate(id, body);
+      return c.json({
+        msg: "Advertising updated successfully!",
+      });
+    } catch (e) {
       return c.json({ error: e }, 500);
     }
   },

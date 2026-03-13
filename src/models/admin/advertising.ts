@@ -7,7 +7,7 @@ export const advertising = z.object({
     data: z.any(),
     length: z.number(),
   }),
-  des: z.string(),
+  description: z.string(),
   isActive: z.boolean(),
   store: z.string(),
 });
@@ -20,7 +20,7 @@ const advertisingSchema = new Schema<advertising>(
       data: Buffer,
       length: Number,
     },
-    des: {
+    description: {
       type: String,
       required: true,
     },
@@ -34,6 +34,6 @@ const advertisingSchema = new Schema<advertising>(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 export default mongoose.model<advertising>("advertisings", advertisingSchema);

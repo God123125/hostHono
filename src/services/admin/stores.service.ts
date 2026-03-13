@@ -413,15 +413,9 @@ const controller = {
       const store = await storeModel.find({
         name: { $regex: search, $options: "i" },
       });
-      if (store.length > 0) {
-        return c.json({
-          data: store,
-        });
-      } else {
-        return c.json({
-          msg: "Store not found!",
-        });
-      }
+      return c.json({
+        list: store,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
@@ -432,6 +426,9 @@ const controller = {
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const stores = await storeModel.aggregate([
+        {
+          $match: { isActive: true },
+        },
         { $project: { store_img: 0 } },
         { $addFields: { idAsString: { $toString: "$_id" } } },
         {
