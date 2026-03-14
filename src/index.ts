@@ -4,7 +4,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import testRoutes from "./routes/test.route.js";
 import { logger } from "hono/logger";
-import { connectDatabase } from "./db/db.js";
+import { connectDatabase } from "./config/database.js";
 import { cors } from "hono/cors";
 import honoRoutes from "./routes/routers.js";
 import { createNodeWebSocket } from "@hono/node-ws";
