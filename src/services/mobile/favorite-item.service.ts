@@ -22,18 +22,21 @@ export const favoriteItemController = {
   getMany: async (c: Context) => {
     try {
       const user = c.get("user");
-      const data = await favoriteItemModel.find({ user: user }).populate([
-        {
-          path: "product",
-          select: "-image",
-        },
-      ]);
+      const data = await favoriteItemModel
+        .find({ user: user })
+        .populate([
+          {
+            path: "product",
+            select: "-image",
+          },
+        ])
+        .lean();
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const formattedData = data.map((el) => {
         return {
           ...el,
-          img_url: `${baseUrl}/api/products/img/${el?._id}`,
+          img_url: `${baseUrl}/api/products/img/${el?.product?._id}`,
         };
       });
       return c.json({ list: formattedData });
