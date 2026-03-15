@@ -94,7 +94,7 @@ export const orderController = {
           },
           {
             $lookup: {
-              from: "super_admins",
+              from: "admins",
               localField: "storeDetails.merchant",
               foreignField: "_id",
               as: "merchantDetails",

@@ -370,6 +370,23 @@ export const mobileUserController = {
       return c.json({ error: e }, 500);
     }
   },
+  getOverAllStats: async (c: Context) => {
+    try {
+      const totalUsers = await mobileUserModel.countDocuments();
+      const days = 7; // change as needed
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      const newestUser = await mobileUserModel
+        .find({ createdAt: { $gte: since } })
+        .sort({ createdAt: -1 });
+      return c.json({
+        total_users: totalUsers,
+        newest_users: newestUser.length,
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  },
 };
 function getToken(userId: string) {
   const secret = process.env.JWT_KEY;

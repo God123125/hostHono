@@ -191,6 +191,7 @@ export const adminController = {
         message: "Login Success",
       });
     } catch (e) {
+      console.log(e);
       return c.json({ error: e }, 500);
     }
   },
@@ -596,6 +597,46 @@ export const adminController = {
       );
       return c.json({
         msg: "Commission marked as paid",
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getOverallStats: async (c: Context) => {
+    try {
+      const totalMerchants = await adminModel.countDocuments({
+        role: { $ne: UserRole.SuperAdmin },
+      });
+      const totalActive = await adminModel.countDocuments({ isActive: true });
+      const totalInactive = await adminModel.countDocuments({
+        isActive: false,
+      });
+      const days = 7; // change as needed
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      const newestMerchants = await adminModel
+        .find({ createdAt: { $gte: since } })
+        .sort({ createdAt: -1 });
+      const result = await adminModel.aggregate([
+        {
+          $addFields: {
+            avgCommissionRate: { $avg: "$commission_rate" },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            avgCommissionRate: { $avg: "$avgCommissionRate" },
+          },
+        },
+      ]);
+      const avgCommissionRate = result[0]?.avgCommissionRate || 0;
+      return c.json({
+        total_merchant: totalMerchants,
+        total_active_merchant: totalActive,
+        total_inactive_merchant: totalInactive,
+        newest_merchant: newestMerchants.length,
+        avg_commission_rate: avgCommissionRate,
       });
     } catch (e) {
       return c.json({ error: e }, 500);

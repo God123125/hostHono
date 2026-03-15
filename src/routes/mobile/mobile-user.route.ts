@@ -6,6 +6,7 @@ const routes = new Hono();
 routes.get("/", mobileUserController.getUsers);
 routes.get("/personal-info", verifyToken, mobileUserController.getById);
 routes.get("/search", mobileUserController.search);
+routes.get("/overall", mobileUserController.getOverAllStats);
 routes.get("/profile/:id", mobileUserController.getUserProfile);
 routes.post("/register", mobileUserController.requestRegister);
 routes.post("/verify", mobileUserController.verifyRegister);

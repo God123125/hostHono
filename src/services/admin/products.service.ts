@@ -225,6 +225,7 @@ const controller = {
         category: category_id.toString(),
       };
       const data = await productModel.find(query).populate("category").lean();
+      console.log(data);
       const url = new URL(c.req.url);
       const baseUrl = `${url.origin}`;
       const formattedData = data.map((el) => {

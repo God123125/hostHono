@@ -256,5 +256,65 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
+  getOverallStats: async (c: Context) => {
+    try {
+      const totalFeedbacks = await feedbackModel.countDocuments();
+      const feedbacks = await feedbackModel.aggregate([
+        {
+          $group: {
+            _id: null,
+            average_star: { $avg: "$star" },
+            positive_count: {
+              $sum: { $cond: [{ $gt: ["$star", 3] }, 1, 0] },
+            },
+            negative_count: {
+              $sum: { $cond: [{ $lt: ["$star", 3] }, 1, 0] },
+            },
+          },
+        },
+        {
+          $addFields: {
+            positive_proportion: {
+              $cond: [
+                { $gt: [totalFeedbacks, 0] },
+                {
+                  $multiply: [
+                    { $divide: ["$positive_count", totalFeedbacks] },
+                    100,
+                  ],
+                },
+                0,
+              ],
+            },
+            negative_proportion: {
+              $cond: [
+                { $gt: [totalFeedbacks, 0] },
+                {
+                  $multiply: [
+                    { $divide: ["$negative_count", totalFeedbacks] },
+                    100,
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      ]);
+      const result = feedbacks[0] ?? {
+        average_star: 0,
+        positive_count: 0,
+        negative_count: 0,
+        positive_proportion: 0,
+        negative_proportion: 0,
+      };
+      return c.json({
+        total_feedback: totalFeedbacks,
+        calculate_average: result,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
 };
 export default controller;

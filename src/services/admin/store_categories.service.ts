@@ -102,6 +102,32 @@ export const storeCategoryController = {
       return c.json({ error: e }, 500);
     }
   },
+  getOverallStats: async (c: Context) => {
+    try {
+      const totalStoreCategories = await storeCategoryModel.countDocuments();
+      const totalActiveCategories = await storeCategoryModel.countDocuments({
+        isActive: true,
+      });
+      const days = 7; // change as needed
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+
+      const newestCategories = await storeCategoryModel
+        .find({ createdAt: { $gte: since } })
+        .sort({ createdAt: -1 });
+      const totalInactiveCategories = await storeCategoryModel.countDocuments({
+        isActive: false,
+      });
+      return c.json({
+        totalStoreCategories: totalStoreCategories,
+        totalActiveCategories: totalActiveCategories,
+        newestCategories: newestCategories.length,
+        totalInactiveCategories: totalInactiveCategories,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
   updateInfo: async (c: Context) => {
     try {
       const id = c.req.param("id");
@@ -170,6 +196,35 @@ export const storeCategoryController = {
           msg: "No data found!",
         });
       }
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  countStoreForDashboard: async (c: Context) => {
+    try {
+      const storesByCategory = await storeCategoryModel.aggregate([
+        {
+          $addFields: { idToString: { $toString: "$_id" } },
+        },
+        {
+          $lookup: {
+            from: "stores",
+            localField: "idToString",
+            foreignField: "store_category",
+            as: "stores",
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            store_count: { $size: "$stores" },
+          },
+        },
+      ]);
+      return c.json({
+        list: storesByCategory,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }

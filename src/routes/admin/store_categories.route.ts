@@ -3,6 +3,11 @@ import { storeCategoryController } from "../../services/admin/store_categories.s
 const routes = new Hono();
 routes.get("/", storeCategoryController.getMany);
 routes.get("/search", storeCategoryController.search);
+routes.get("/overall", storeCategoryController.getOverallStats);
+routes.get(
+  "/overall-dashboard",
+  storeCategoryController.countStoreForDashboard,
+);
 routes.post("/", storeCategoryController.create);
 routes.patch("/update-info/:id", storeCategoryController.updateInfo);
 routes.patch("/update-image/:id", storeCategoryController.updateImg);

@@ -8,6 +8,7 @@ routes.get("/search", adminController.search);
 routes.get("/get-detail", verifyToken, adminController.getAdminDetail);
 routes.get("/order-info", verifyToken, adminController.getOrderInfo);
 routes.get("/overall-stats", adminController.getMerchantOverallStats);
+routes.get("/overall", adminController.getOverallStats); // for display stat cards on front-end admin
 routes.get("/commissions", adminController.getCommissions);
 routes.post("/", adminController.createMerchant);
 routes.post("/login", adminController.login);

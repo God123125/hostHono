@@ -3,6 +3,7 @@ import { storeModel } from "../../models/admin/stores.js";
 import { Store } from "../../models/admin/stores.js";
 import * as z from "zod";
 import mongoose from "mongoose";
+import { commissionModel } from "../../models/admin/commission.js";
 const controller = {
   create: async (c: Context) => {
     try {
@@ -313,6 +314,30 @@ const controller = {
       const data = await storeModel.aggregate(pipeline);
       const detail = data[0];
       return c.json(detail ? detail : {});
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getStoreOverallStats: async (c: Context) => {
+    try {
+      const totalStores = await storeModel.countDocuments();
+      const totalActive = await storeModel.countDocuments({ isActive: true });
+      const totalInactive = await storeModel.countDocuments({
+        isActive: false,
+      });
+      const allCommission = await commissionModel
+        .find({ status: "paid" })
+        .lean();
+      const totalCommission = allCommission.reduce(
+        (init, acc) => init + acc.amount,
+        0,
+      );
+      return c.json({
+        total_stores: totalStores,
+        total_active_store: totalActive,
+        total_inactive_store: totalInactive,
+        total_commission: totalCommission,
+      });
     } catch (e) {
       return c.json({ error: e }, 500);
     }
