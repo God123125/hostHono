@@ -175,13 +175,44 @@ export const orderController = {
   },
   getList: async (c: Context) => {
     try {
-      const order = await orderModel
-        .find({ user: c.get("user") })
-        .populate("products.store")
-        .select("-store_img")
-        .sort({ createdAt: 1 });
+      const data = await orderModel.aggregate([
+        { $match: { user: c.get("user") } },
+        { $unwind: "$products" },
+        {
+          $lookup: {
+            from: "stores",
+            localField: "products.store",
+            foreignField: "_id",
+            as: "products.store",
+          },
+        },
+        { $unwind: "$products.store" }, // flatten the array from $lookup
+        {
+          $project: {
+            "products.store.store_img": 0, // was "stores.store_img" (wrong path)
+          },
+        },
+        {
+          $sort: { createdAt: -1 }, // was "$createdAt" (wrong, no $ prefix on field names)
+        },
+        {
+          $group: {
+            // re-group products back after $unwind
+            _id: "$_id",
+            user: { $first: "$user" },
+            products: { $push: "$products" },
+            delivery_fee: { $first: "$delivery_fee" },
+            total: { $first: "$total" },
+            status: { $first: "$status" },
+            payment_method: { $first: "$payment_method" },
+            createdAt: { $first: "$createdAt" },
+            updatedAt: { $first: "$updatedAt" },
+          },
+        },
+        { $sort: { createdAt: -1 } }, // sort again after $group
+      ]);
       return c.json({
-        list: order,
+        list: data,
       });
     } catch (e) {
       return c.json({ error: e }, 500);
