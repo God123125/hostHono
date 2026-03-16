@@ -17,6 +17,9 @@ export const Order = z.object({
       store: z.any(),
     }),
   ),
+  remark: z.string().optional(),
+  estimate_delivery_time: z.string(),
+  total_discount: z.number(),
 });
 export type Order = z.infer<typeof Order>;
 const orderSchema = new Schema<Order>(
@@ -70,6 +73,16 @@ const orderSchema = new Schema<Order>(
     payment_method: {
       type: String,
       required: true,
+    },
+    remark: {
+      type: String,
+      required: false,
+    },
+    estimate_delivery_time: {
+      type: String,
+    },
+    total_discount: {
+      type: Number,
     },
   },
   { timestamps: true },

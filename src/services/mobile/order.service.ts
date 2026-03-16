@@ -22,6 +22,9 @@ export const orderController = {
         products: req.products,
         status: orderStatus.pending,
         payment_method: req.payment_method,
+        remark: req.remark,
+        estimate_delivery_time: req.estimate_delivery_time,
+        total_discount: req.total_discount,
       };
       const validated = Order.parse(body);
       const created = await orderModel.create(validated);
