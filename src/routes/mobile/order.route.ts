@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { orderController } from "../../services/mobile/order.service.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
+import { verify } from "crypto";
 const routes = new Hono();
 routes.use("*", verifyToken);
 routes.get("/", orderController.getList); // get all order basically it is used for admin side
 routes.get("/order-pending", orderController.getOrder); // view order that is on process
+routes.get("/overall-stats", verifyToken, orderController.getOverallStats);
 routes.post("/checkout", orderController.checkOut); // check out when user decide to buy
 // routes.patch("/order/:id", orderController.order);
 routes.patch("/end-order/:id", orderController.endOrder); // when user confirm order update status

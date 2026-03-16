@@ -187,4 +187,65 @@ export const orderController = {
       return c.json({ error: e }, 500);
     }
   },
+  getOverallStats: async (c: Context) => {
+    try {
+      const store = c.get("store");
+      const data = await orderModel.aggregate([
+        {
+          $match: { "products.store": store },
+        },
+        {
+          $unwind: "$products",
+        },
+        {
+          $match: { "products.store": store },
+        },
+        {
+          $group: {
+            _id: null,
+            total_income: { $sum: "$products.subtotal" },
+            total_pending: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "pending"] }, 1, 0],
+              },
+            },
+            total_cancels: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "canceled"] }, 1, 0],
+              },
+            },
+            total_completed: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "completed"] }, 1, 0],
+              },
+            },
+            total_orders: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            total_income: 1,
+            total_pending: 1,
+            total_completed: 1,
+            total_orders: 1,
+            total_canceled: 1,
+          },
+        },
+      ]);
+
+      // ✅ Fallback to 0 if no data found
+      const result = data[0] ?? {
+        total_income: 0,
+        total_pending: 0,
+        total_completed: 0,
+        total_canceled: 0,
+        total_orders: 0,
+      };
+
+      return c.json(result);
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
 };

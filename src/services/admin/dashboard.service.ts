@@ -90,9 +90,21 @@ export const dashboardController = {
           },
         },
         {
+          $addFields: {
+            merchantObjectId: {
+              $convert: {
+                input: "$incomeData.merchant",
+                to: "objectId",
+                onError: null,
+                onNull: null,
+              },
+            },
+          },
+        },
+        {
           $lookup: {
             from: "admins",
-            localField: "incomeData.admin",
+            localField: "merchantObjectId", // ✅ Use converted field
             foreignField: "_id",
             as: "adminData",
           },
@@ -107,7 +119,7 @@ export const dashboardController = {
           $group: {
             _id: "$products.store",
             store_name: { $first: "$incomeData.name" },
-            merchant_name: { $first: "$adminData.name" },
+            merchant_name: { $first: "$adminData.fullname" },
             total_order: { $sum: 1 },
             total_income: { $sum: "$products.subtotal" },
           },

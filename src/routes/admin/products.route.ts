@@ -10,6 +10,11 @@ routes.get(
   productController.getProductsGroupedByCategory,
 );
 routes.get("/search", verifyToken, productController.search);
+routes.get(
+  "/overall-stats",
+  verifyToken,
+  productController.getOverallStatCardForMerchant,
+);
 routes.post("/", verifyToken, productController.create);
 routes.patch("/update-info/:id", verifyToken, productController.updateInfo);
 routes.patch("/update-image/:id", verifyToken, productController.updateImage);

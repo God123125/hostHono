@@ -5,6 +5,7 @@ const routes = new Hono();
 routes.get("/", verifyToken, categoryController.getManyForAdmin);
 routes.post("/", verifyToken, categoryController.create);
 routes.get("search", verifyToken, categoryController.search);
+routes.get("/overall-stats", verifyToken, categoryController.getOverallStat);
 routes.get("/:id", categoryController.getById);
 routes.patch("/:id", categoryController.update);
 routes.delete("/:id", categoryController.delete);

@@ -368,5 +368,26 @@ const controller = {
       return c.json({ error: e }, 500);
     }
   },
+  getOverallStatCardForMerchant: async (c: Context) => {
+    try {
+      const store = c.get("store");
+      const totalProducts = await productModel.countDocuments({ store: store });
+      const totalActive = await productModel.countDocuments({
+        isActive: true,
+        store: store,
+      });
+      const totalInactive = await productModel.countDocuments({
+        isActive: false,
+        store: store,
+      });
+      return c.json({
+        total_products: totalProducts,
+        total_active_products: totalActive,
+        total_inactive_products: totalInactive,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
 };
 export default controller;

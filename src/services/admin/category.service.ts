@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import categoryModel from "../../models/admin/category.js";
 import { Category } from "../../models/admin/category.js";
 import * as z from "zod";
+import { Types } from "mongoose";
 const categoryController = {
   create: async (c: Context) => {
     try {
@@ -114,6 +115,29 @@ const categoryController = {
         .select("-store_id");
       return c.json({
         list: categories,
+      });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
+  getOverallStat: async (c: Context) => {
+    try {
+      const store = new Types.ObjectId(c.get("store"));
+      const totalCategories = await categoryModel.countDocuments({
+        store_id: store,
+      });
+      const totalActive = await categoryModel.countDocuments({
+        isActive: true,
+        store_id: store,
+      });
+      const totalInactive = await categoryModel.countDocuments({
+        isActive: false,
+        store_id: store,
+      });
+      return c.json({
+        total_categories: totalCategories,
+        total_active_categories: totalActive,
+        total_inactive_categories: totalInactive,
       });
     } catch (e) {
       return c.json({ error: e }, 500);
