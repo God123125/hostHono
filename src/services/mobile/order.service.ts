@@ -10,7 +10,7 @@ export const orderController = {
   checkOut: async (c: Context) => {
     try {
       const req = await c.req.json();
-      const cartId = req.cartId;
+      // const cartId = req.cartId;:
       const total = req.products.reduce(
         (acc: number, ele: any) => acc + ele.subtotal,
         0,
@@ -23,12 +23,12 @@ export const orderController = {
         status: orderStatus.pending,
         payment_method: req.payment_method,
         remark: req.remark,
-        estimate_delivery_time: req.estimate_delivery_time,
+        estimated_delivery_time: req.estimate_delivery_time,
         total_discount: req.total_discount,
       };
       const validated = Order.parse(body);
       const created = await orderModel.create(validated);
-      await cartModel.findByIdAndDelete(cartId);
+      // await cartModel.findByIdAndDelete(cartId);
       return c.json({
         msg: "Checkouted",
         data: created,

@@ -18,7 +18,7 @@ export const Order = z.object({
     }),
   ),
   remark: z.string().optional(),
-  estimate_delivery_time: z.string(),
+  estimated_delivery_time: z.string(),
   total_discount: z.number(),
 });
 export type Order = z.infer<typeof Order>;
@@ -78,7 +78,7 @@ const orderSchema = new Schema<Order>(
       type: String,
       required: false,
     },
-    estimate_delivery_time: {
+    estimated_delivery_time: {
       type: String,
     },
     total_discount: {
