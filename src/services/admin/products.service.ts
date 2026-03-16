@@ -2,8 +2,6 @@ import type { Context } from "hono";
 import { Product } from "../../models/admin/products.js";
 import productModel from "../../models/admin/products.js";
 import * as z from "zod";
-import path from "path";
-import { readFile } from "fs/promises";
 import dotenv from "dotenv";
 dotenv.config();
 const controller = {
@@ -21,7 +19,7 @@ const controller = {
         category: formData.get("category") as string,
         isActive: true,
         discount: Number(formData.get("discount")),
-        store: formData.get("store") as string,
+        store: c.get("store") as string,
         price_after_discount: price_after_discount,
         createdBy: c.get("user"),
       };
@@ -289,7 +287,7 @@ const controller = {
           $group: {
             _id: "$category",
             name: { $first: "$categoryData.name" },
-            description: { $first: "$categoryData.desc" },
+            description: { $first: "$categoryData.description" },
             products: {
               $push: {
                 _id: "$_id",

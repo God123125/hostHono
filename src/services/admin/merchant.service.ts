@@ -26,7 +26,7 @@ export const adminController = {
       const password = bodyData["password"] as string;
       const hashPass = await bcrpyt.hash(password, salt);
       const body: any = {
-        fullname: (bodyData["name"] as string) || "",
+        fullname: (bodyData["fullname"] as string) || "",
         username: bodyData["username"] as string,
         email: bodyData["email"] as string,
         password: hashPass,

@@ -5,7 +5,7 @@ const routes = new Hono();
 routes.get("/", verifyToken, feedbackController.getMany);
 routes.post("/", verifyToken, feedbackController.create);
 routes.get("/search", verifyToken, feedbackController.search);
-routes.get("/overall", feedbackController.getOverallStats);
+routes.get("/overall", verifyToken, feedbackController.getOverallStats);
 routes.get("/search-for-admin", feedbackController.searchForAdmin);
 routes.get("/img/:id", feedbackController.getFeedbackImage);
 routes.delete("/:id", feedbackController.delete);

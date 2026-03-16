@@ -258,8 +258,14 @@ const controller = {
   },
   getOverallStats: async (c: Context) => {
     try {
-      const totalFeedbacks = await feedbackModel.countDocuments();
+      const store_id = c.get("store");
+      const matchStage = store_id ? [{ $match: { store: store_id } }] : [];
+      const totalFeedbacks = await feedbackModel.countDocuments(
+        store_id ? { store: store_id } : {},
+      );
+
       const feedbacks = await feedbackModel.aggregate([
+        ...matchStage,
         {
           $group: {
             _id: null,
@@ -301,6 +307,7 @@ const controller = {
           },
         },
       ]);
+
       const result = feedbacks[0] ?? {
         average_star: 0,
         positive_count: 0,
