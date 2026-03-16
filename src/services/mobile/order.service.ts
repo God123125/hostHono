@@ -5,7 +5,7 @@ import { cartModel } from "../../models/mobile/cart.js";
 import { orderStatus } from "../../enum/order-status.enum.js";
 import * as z from "zod";
 import { commissionModel } from "../../models/admin/commission.js";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 export const orderController = {
   checkOut: async (c: Context) => {
     try {
@@ -189,7 +189,8 @@ export const orderController = {
   },
   getOverallStats: async (c: Context) => {
     try {
-      const store = c.get("store");
+      const store = new Types.ObjectId(c.get("store"));
+      console.log(store);
       const data = await orderModel.aggregate([
         {
           $match: { "products.store": store },

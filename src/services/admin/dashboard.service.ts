@@ -143,7 +143,8 @@ export const dashboardController = {
   },
   getRecentOrders: async (c: Context) => {
     try {
-      const store_id = new Types.ObjectId(c.get("store"));
+      const store = await c.get("store");
+      const store_id = new Types.ObjectId(store);
       const data = await orderModel.aggregate([
         {
           $match: {
@@ -153,13 +154,6 @@ export const dashboardController = {
         {
           $addFields: {
             userObjectId: { $toObjectId: "$user" },
-            products: {
-              $filter: {
-                input: "$products",
-                as: "product",
-                cond: { $eq: ["$$product.store", store_id] },
-              },
-            },
           },
         },
         {
@@ -179,9 +173,7 @@ export const dashboardController = {
         { $sort: { createdAt: -1 } },
         { $limit: 5 },
       ]);
-      return c.json({
-        list: data,
-      });
+      return c.json({ list: data });
     } catch (e) {
       return c.json({ error: e }, 500);
     }

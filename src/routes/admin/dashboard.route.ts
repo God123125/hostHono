@@ -1,10 +1,15 @@
 import { Hono } from "hono";
 import { dashboardController } from "../../services/admin/dashboard.service.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
+import { verify } from "crypto";
 const routes = new Hono();
 routes.get("/mostOrderedUsers", dashboardController.getMostOrderUser);
 routes.get("/highIncomeAdmin", dashboardController.getHighIncomeAdmin);
-routes.get("/getRecentOrders", dashboardController.getRecentOrders);
+routes.get(
+  "/getRecentOrders",
+  verifyToken,
+  dashboardController.getRecentOrders,
+);
 routes.get(
   "/overAllStatsForAdmin",
   dashboardController.getOverallStatsForAdminDashboard,

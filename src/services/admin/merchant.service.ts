@@ -7,7 +7,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { orderModel } from "../../models/mobile/order.js";
 import { storeModel } from "../../models/admin/stores.js";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { commissionModel } from "../../models/admin/commission.js";
 import { UserRole } from "../../enum/user-role.enum.js";
 export const adminController = {
@@ -407,7 +407,7 @@ export const adminController = {
   },
   getOrderInfo: async (c: Context) => {
     try {
-      const store = c.get("store");
+      const store = new Types.ObjectId(c.get("store"));
       const searchQuery = c.req.query("q")
         ? decodeURIComponent(c.req.query("q") as string)
         : null;
