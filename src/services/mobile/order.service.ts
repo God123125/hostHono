@@ -176,9 +176,9 @@ export const orderController = {
   getList: async (c: Context) => {
     try {
       const order = await orderModel
-        .find({
-          user: c.get("user"),
-        })
+        .find({ user: c.get("user") })
+        .populate("products.store")
+        .select("-store_img")
         .sort({ createdAt: 1 });
       return c.json({
         list: order,
