@@ -23,7 +23,7 @@ export const orderController = {
         status: orderStatus.pending,
         payment_method: req.payment_method,
         remark: req.remark,
-        estimated_delivery_time: req.estimate_delivery_time,
+        estimated_delivery_time: req.estimated_delivery_time,
         total_discount: req.total_discount,
       };
       const validated = Order.parse(body);
