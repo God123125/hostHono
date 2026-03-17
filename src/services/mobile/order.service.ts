@@ -178,6 +178,8 @@ export const orderController = {
   },
   getList: async (c: Context) => {
     try {
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.origin}`;
       const data = await orderModel.aggregate([
         { $match: { user: c.get("user") } },
         { $unwind: "$products" },
@@ -199,6 +201,16 @@ export const orderController = {
           $sort: { createdAt: -1 }, // was "$createdAt" (wrong, no $ prefix on field names)
         },
         {
+          $addFields: {
+            image_url: {
+              $concat: [
+                `${baseUrl}/api/stores/store-image/`,
+                { $toString: "$_id" },
+              ],
+            },
+          },
+        },
+        {
           $group: {
             // re-group products back after $unwind
             _id: "$_id",
@@ -213,6 +225,7 @@ export const orderController = {
             remark: { $first: "$remark" },
             estimated_delivery_time: { $first: "$estimated_delivery_time" },
             total_discount: { $first: "$total_discount" },
+            image_url: { $first: "$image_url" },
           },
         },
         { $sort: { createdAt: -1 } }, // sort again after $group
