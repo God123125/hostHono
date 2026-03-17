@@ -210,6 +210,9 @@ export const orderController = {
             payment_method: { $first: "$payment_method" },
             createdAt: { $first: "$createdAt" },
             updatedAt: { $first: "$updatedAt" },
+            remark: { $first: "$remark" },
+            estimated_delivery_time: { $first: "$estimated_delivery_time" },
+            total_discount: { $first: "$total_discount" },
           },
         },
         { $sort: { createdAt: -1 } }, // sort again after $group
