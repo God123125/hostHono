@@ -11,4 +11,5 @@ routes.post("/checkout", verifyToken, orderController.checkOut); // check out wh
 // routes.patch("/order/:id", orderController.order);
 routes.patch("/end-order/:id", orderController.endOrder); // when user confirm order update status
 routes.delete("/:id", orderController.deleteOrder);
+routes.get("/:id", verifyToken, orderController.getById);
 export default routes;

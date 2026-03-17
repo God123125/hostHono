@@ -224,6 +224,58 @@ export const orderController = {
       return c.json({ error: e }, 500);
     }
   },
+  getById: async (c: Context) => {
+    try {
+      const id = c.req.param("id");
+      const data = await orderModel.aggregate([
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(id),
+            user: c.get("user"),
+          },
+        },
+        { $unwind: "$products" },
+        {
+          $lookup: {
+            from: "stores",
+            localField: "products.store",
+            foreignField: "_id",
+            as: "products.store",
+          },
+        },
+        { $unwind: "$products.store" },
+        {
+          $project: {
+            "products.store.store_img": 0,
+          },
+        },
+        {
+          $group: {
+            _id: "$_id",
+            user: { $first: "$user" },
+            products: { $push: "$products" },
+            delivery_fee: { $first: "$delivery_fee" },
+            total: { $first: "$total" },
+            status: { $first: "$status" },
+            payment_method: { $first: "$payment_method" },
+            createdAt: { $first: "$createdAt" },
+            updatedAt: { $first: "$updatedAt" },
+            remark: { $first: "$remark" },
+            estimated_delivery_time: { $first: "$estimated_delivery_time" },
+            total_discount: { $first: "$total_discount" },
+          },
+        },
+      ]);
+
+      if (!data.length) {
+        return c.json({ error: "Order not found" }, 404);
+      }
+
+      return c.json({ data: data[0] });
+    } catch (e) {
+      return c.json({ error: e }, 500);
+    }
+  },
   getOverallStats: async (c: Context) => {
     try {
       const store = new Types.ObjectId(c.get("store"));
