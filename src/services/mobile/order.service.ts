@@ -202,10 +202,10 @@ export const orderController = {
         },
         {
           $addFields: {
-            image_url: {
+            store_url: {
               $concat: [
                 `${baseUrl}/api/stores/store-image/`,
-                { $toString: "$_id" },
+                { $toString: "$products.store._id" },
               ],
             },
           },
@@ -225,7 +225,7 @@ export const orderController = {
             remark: { $first: "$remark" },
             estimated_delivery_time: { $first: "$estimated_delivery_time" },
             total_discount: { $first: "$total_discount" },
-            image_url: { $first: "$image_url" },
+            store_url: { $first: "$store_url" },
           },
         },
         { $sort: { createdAt: -1 } }, // sort again after $group
