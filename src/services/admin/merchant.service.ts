@@ -536,7 +536,7 @@ export const adminController = {
       {
         $group: {
           _id: "$merchantData._id",
-          merchant_name: { $first: "$merchantData.name" },
+          merchant_name: { $first: "$merchantData.fullname" },
           merchant_email: { $first: "$merchantData.email" },
           merchant_phone: { $first: "$merchantData.phone" },
 
