@@ -277,12 +277,13 @@ export const dashboardController = {
   getOverallStatForMerchantStatCard: async (c: Context) => {
     try {
       const store_id = new Types.ObjectId(c.get("store"));
-
       const totalProducts = await productModel.countDocuments({
         store: c.get("store"),
       });
-
       const data = await orderModel.aggregate([
+        {
+          $unwind: "$products",
+        },
         { $match: { "products.store": store_id } },
         {
           $group: {

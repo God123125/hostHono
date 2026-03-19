@@ -25,6 +25,7 @@ routes.get(
 );
 routes.get(
   "overAllStatsForMerchant",
+  verifyToken,
   dashboardController.getOverallStatForMerchantStatCard,
 );
 export default routes;
