@@ -20,6 +20,8 @@ export const Order = z.object({
   remark: z.string().optional(),
   estimated_delivery_time: z.string(),
   total_discount: z.number(),
+  latitude: z.string(),
+  longitude: z.string(),
 });
 export type Order = z.infer<typeof Order>;
 const orderSchema = new Schema<Order>(
@@ -83,6 +85,12 @@ const orderSchema = new Schema<Order>(
     },
     total_discount: {
       type: Number,
+    },
+    latitude: {
+      type: String,
+    },
+    longitude: {
+      type: String,
     },
   },
   { timestamps: true },

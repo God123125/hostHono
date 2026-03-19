@@ -25,6 +25,8 @@ export const orderController = {
         remark: req.remark,
         estimated_delivery_time: req.estimated_delivery_time,
         total_discount: req.total_discount,
+        latitude: req.latitude,
+        longitude: req.longitude,
       };
       const validated = Order.parse(body);
       const created = await orderModel.create(validated);
@@ -226,6 +228,8 @@ export const orderController = {
             estimated_delivery_time: { $first: "$estimated_delivery_time" },
             total_discount: { $first: "$total_discount" },
             store_url: { $first: "$store_url" },
+            latitude: { $first: "$latitude" },
+            longitude: { $first: "$longitude" },
           },
         },
         { $sort: { createdAt: -1 } }, // sort again after $group
@@ -276,6 +280,8 @@ export const orderController = {
             remark: { $first: "$remark" },
             estimated_delivery_time: { $first: "$estimated_delivery_time" },
             total_discount: { $first: "$total_discount" },
+            latitude: { $first: "$latitude" },
+            longitude: { $first: "$longitude" },
           },
         },
       ]);
