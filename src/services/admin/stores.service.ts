@@ -160,13 +160,13 @@ const controller = {
         {
           $lookup: {
             from: "orders",
-            let: { storeId: { $toString: "$_id" } }, // convert store _id to string
+            let: { storeId: "$_id" }, // no conversion needed, keep as ObjectId
             pipeline: [
               { $unwind: "$products" },
               {
                 $match: {
                   $expr: {
-                    $eq: ["$products.store", "$$storeId"], // string === string
+                    $eq: ["$products.store", "$$storeId"], // ObjectId === ObjectId
                   },
                 },
               },
